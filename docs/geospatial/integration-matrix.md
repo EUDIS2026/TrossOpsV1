@@ -2,7 +2,8 @@
 
 | Capability | Status | Evidence / next step |
 |---|---|---|
-| Synthetic scene API | partial | Snapshot, revision checked commands, and deterministic replay; add persistence and bitemporal semantics. |
+| Synthetic scene API | partial | Snapshot, revision checked commands, deterministic replay, and local SQLite persistence verified across an API restart; add hosted persistence, multi-user concurrency, and bitemporal semantics. |
+| Hosted database | planned | Connect a transactional Postgres service during deployment; current SQLite file is not suitable for serverless persistence. |
 | Service consequence | partial | Backend computes two services with a shared support dependency; extend to capacity/temporal reasoning and tests. |
 | MapLibre/deck scene | partial | GPU silhouettes, planned paths, selectable service areas, dependency toggle, revision replay, and selection verified in Edge; add LOD and performance measurements. |
 | OpenFreeMap basemap | working | Dark style loaded in Edge with attribution; public provider has no SLA. |
