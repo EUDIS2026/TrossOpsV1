@@ -11,6 +11,12 @@ def test_fault_changes_revision_and_computed_service() -> None:
     assert result["worldRevision"] == 2
     assert result["services"][0]["status"] == "unavailable"
     assert "Mobile support 01 is unavailable" in result["services"][0]["blockers"]
+    assert result["services"][1]["status"] == "unavailable"
+    replay = world.snapshot(1)
+    assert replay["services"][0]["status"] == "available"
+    assert replay["worldRevision"] == 1
+    assert replay["latestRevision"] == 2
+    assert replay["events"] == []
 
 
 def test_api_health_and_scene() -> None:
@@ -19,3 +25,4 @@ def test_api_health_and_scene() -> None:
     scene = client.get("/api/scene").json()
     assert scene["sourceKind"] == "simulated"
     assert len(scene["entities"]) == 4
+    assert len(scene["services"]) == 2

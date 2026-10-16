@@ -47,39 +47,45 @@ class World:
             Entity(id="support-01", resourceId="asset-support-01", kind="ground_vehicle", label="Mobile support 01", position=Position(longitudeDeg=17.34, latitudeDeg=59.16), headingDeg=315),
             Entity(id="depot-01", resourceId="asset-depot-01", kind="facility", label="Service depot 01", position=Position(longitudeDeg=17.08, latitudeDeg=59.19)),
         ]
+        self.initial_entities = deepcopy(self.entities)
         self.events: list[dict] = []
 
-    def snapshot(self) -> dict:
+    def snapshot(self, revision: int | None = None) -> dict:
         with self.lock:
-            aircraft = next(e for e in self.entities if e.id == "uav-01")
-            support = next(e for e in self.entities if e.id == "support-01")
-            blockers = []
-            if aircraft.condition != "normal":
-                blockers.append("Survey aircraft 01 is unavailable")
-            if support.condition != "normal":
-                blockers.append("Mobile support 01 is unavailable")
-            service = {
-                "id": "survey-sector-alpha",
-                "label": "Sector Alpha survey",
-                "status": "available" if not blockers else "unavailable",
-                "blockers": blockers,
-                "requiredEntityIds": [aircraft.id, support.id],
-                "explanation": "Requires both the survey aircraft and mobile support to be operational.",
-                "area": [[17.00, 59.10], [17.57, 59.10], [17.57, 59.47], [17.00, 59.47], [17.00, 59.10]],
-            }
+            requested_revision = self.revision if revision is None else revision
+            if not 1 <= requested_revision <= self.revision:
+                raise HTTPException(404, "World revision not found")
+            entities = deepcopy(self.initial_entities)
+            visible_events = [event for event in self.events if event["worldRevision"] <= requested_revision]
+            for event in visible_events:
+                entity = next(item for item in entities if item.id == event["assetId"])
+                entity.condition = "unavailable" if event["kind"] == "fault" else "normal"
+            for entity in entities:
+                entity.worldRevision = requested_revision
+            service_definitions = [
+                {"id": "survey-sector-alpha", "label": "Sector Alpha survey", "requiredEntityIds": ["uav-01", "support-01"], "area": [[17.00, 59.10], [17.57, 59.10], [17.57, 59.47], [17.00, 59.47], [17.00, 59.10]]},
+                {"id": "inspection-sector-bravo", "label": "Sector Bravo inspection", "requiredEntityIds": ["uav-02", "support-01", "depot-01"], "area": [[17.19, 59.11], [17.66, 59.11], [17.66, 59.35], [17.19, 59.35], [17.19, 59.11]]},
+            ]
+            entity_index = {entity.id: entity for entity in entities}
+            services = []
+            for definition in service_definitions:
+                required = [entity_index[entity_id] for entity_id in definition["requiredEntityIds"]]
+                blockers = [f"{entity.label} is unavailable" for entity in required if entity.condition != "normal"]
+                services.append({**definition, "status": "available" if not blockers else "unavailable", "blockers": blockers, "explanation": "Requires all listed assets to be operational."})
             return deepcopy({
                 "scenarioId": "synthetic-demo",
-                "worldRevision": self.revision,
+                "worldRevision": requested_revision,
+                "latestRevision": self.revision,
                 "modelVersion": "0.1.0",
                 "sourceKind": "simulated",
                 "dataNotice": "Synthetic demonstration data. No live telemetry or organization data.",
-                "entities": [e.model_dump() for e in self.entities],
-                "services": [service],
+                "entities": [e.model_dump() for e in entities],
+                "services": services,
                 "routes": [
                     {"id": "survey-route", "kind": "planned", "entityId": "uav-01", "coordinates": [[17.08, 59.16], [17.19, 59.26], [17.24, 59.36], [17.44, 59.39], [17.51, 59.27]]},
                     {"id": "support-route", "kind": "planned", "entityId": "support-01", "coordinates": [[17.08, 59.19], [17.20, 59.17], [17.34, 59.16]]},
                 ],
-                "events": self.events,
+                "events": visible_events,
             })
 
     def apply(self, event: EventIn) -> dict:
@@ -115,8 +121,8 @@ def health() -> dict:
 
 
 @app.get("/api/scene")
-def scene() -> dict:
-    return world.snapshot()
+def scene(revision: int | None = None) -> dict:
+    return world.snapshot(revision)
 
 
 @app.post("/api/events")
