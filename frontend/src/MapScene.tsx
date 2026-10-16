@@ -4,12 +4,13 @@ import { MapboxOverlay } from '@deck.gl/mapbox'
 import { PathLayer, PolygonLayer, TextLayer } from '@deck.gl/layers'
 import type { Entity, Scene } from './types'
 
-const style: maplibregl.StyleSpecification = {
+const localStyle: maplibregl.StyleSpecification = {
   version: 8,
   name: 'Synthetic sector',
   sources: {},
   layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#0d1824' } }],
 }
+const onlineStyle = 'https://tiles.openfreemap.org/styles/dark'
 
 function silhouette(entity: Entity): [number, number][] {
   const { longitudeDeg: x, latitudeDeg: y } = entity.position
@@ -25,25 +26,34 @@ function silhouette(entity: Entity): [number, number][] {
   return shape.map(([px, py]) => [x + (px * Math.cos(rad) + py * Math.sin(rad)) * scale, y + (py * Math.cos(rad) - px * Math.sin(rad)) * scale]) as [number, number][]
 }
 
-type Props = { scene: Scene | null; selectedId: string | null; selectedServiceId: string; showDependencies: boolean; onSelect: (id: string) => void }
+type Props = { scene: Scene | null; selectedId: string | null; selectedServiceId: string; showDependencies: boolean; basemapMode: 'online' | 'local'; onBasemapFailure: () => void; onSelect: (id: string) => void }
 
-export function MapScene({ scene, selectedId, selectedServiceId, showDependencies, onSelect }: Props) {
+export function MapScene({ scene, selectedId, selectedServiceId, showDependencies, basemapMode, onBasemapFailure, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
   const onSelectRef = useRef(onSelect)
+  const basemapModeRef = useRef(basemapMode)
+  const fallbackRef = useRef(onBasemapFailure)
   onSelectRef.current = onSelect
+  basemapModeRef.current = basemapMode
+  fallbackRef.current = onBasemapFailure
 
   useEffect(() => {
     if (!container.current) return
-    const instance = new maplibregl.Map({ container: container.current, style, center: [17.28, 59.27], zoom: 8.8, attributionControl: false })
+    const instance = new maplibregl.Map({ container: container.current, style: basemapModeRef.current === 'online' ? onlineStyle : localStyle, center: [17.28, 59.27], zoom: 8.8 })
     map.current = instance
+    instance.on('error', () => { if (basemapModeRef.current === 'online') fallbackRef.current() })
     const deck = new MapboxOverlay({ interleaved: false, layers: [] })
     overlay.current = deck
     instance.addControl(deck)
     instance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right')
     return () => { instance.remove(); map.current = null; overlay.current = null }
   }, [])
+
+  useEffect(() => {
+    if (map.current) map.current.setStyle(basemapMode === 'online' ? onlineStyle : localStyle)
+  }, [basemapMode])
 
   useEffect(() => {
     const entities = scene?.entities ?? []

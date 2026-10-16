@@ -20,7 +20,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:5173`. Select an asset, record a fault, and observe the revision, condition, service consequence, and event history. Record a repair to restore the service. Data resets when the API process restarts.
+Open `http://127.0.0.1:5173`. Select an asset, record a fault, and observe the revision, condition, service consequence, and event history. Select either service, reveal dependencies, scrub revisions, and switch between the online dark map and local grid. Record a repair to restore the service. Data resets when the API process restarts. See [basemap attribution](docs/geospatial/styles.md).
 
 ## Checks
 

@@ -8,6 +8,7 @@ export function App() {
   const [selectedServiceId, setSelectedServiceId] = useState('survey-sector-alpha')
   const [busy, setBusy] = useState(false)
   const [showDependencies, setShowDependencies] = useState(false)
+  const [basemapMode, setBasemapMode] = useState<'online' | 'local'>('online')
   const [error, setError] = useState('')
   const revisionRequest = useRef(0)
 
@@ -46,8 +47,8 @@ export function App() {
         <div className="separator" /><div className="section-kicker">SERVICE DEMAND <span>{scene?.services.length ?? 0}</span></div><div className="service-list">{scene?.services.map(item => <button key={item.id} className={`service-row ${item.id === selectedServiceId ? 'active' : ''}`} onClick={() => setSelectedServiceId(item.id)}><strong>{item.label}</strong><small className={item.status}>{item.status.toUpperCase()}</small></button>)}</div>
         <div className="sidebar-foot">{scene?.dataNotice ?? 'Connecting to scene…'}</div>
       </aside>
-      <section className="scene-panel"><div className="map-head"><div><span className="section-kicker">OPERATIONAL SCENE</span><h2>Sector Alpha</h2></div><div className="map-status">2D VIEW <span>·</span> SIMULATED</div></div>
-        <div className="map-wrap"><MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={showDependencies} onSelect={setSelectedId} /><div className="map-grid" aria-hidden="true" /><div className="map-corner">59° N<br />17° E</div><div className="map-badge">SYNTHETIC GEOGRAPHY</div><div className="map-legend"><span><i className="legend-area" />Service area</span><span><i className="legend-route" />Planned route</span><span><i className="legend-asset" />Asset</span></div></div>
+      <section className="scene-panel"><div className="map-head"><div><span className="section-kicker">OPERATIONAL SCENE</span><h2>Sector Alpha</h2></div><div className="map-controls"><button className={basemapMode === 'online' ? 'selected' : ''} onClick={() => setBasemapMode('online')}>Map</button><button className={basemapMode === 'local' ? 'selected' : ''} onClick={() => setBasemapMode('local')}>Local grid</button><div className="map-status">2D VIEW <span>·</span> SIMULATED</div></div></div>
+        <div className="map-wrap"><MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={showDependencies} basemapMode={basemapMode} onBasemapFailure={() => setBasemapMode('local')} onSelect={setSelectedId} /><div className="map-grid" aria-hidden="true" /><div className="map-corner">59° N<br />17° E</div><div className="map-badge">{basemapMode === 'online' ? 'OPENFREEMAP · SYNTHETIC SCENE' : 'LOCAL GRID · SYNTHETIC SCENE'}</div><div className="map-legend"><span><i className="legend-area" />Service area</span><span><i className="legend-route" />Planned route</span><span><i className="legend-asset" />Asset</span></div></div>
         <div className="scene-footer"><span>NO LIVE TELEMETRY</span><span>MODEL {scene?.modelVersion ?? '—'}</span><span>WGS84 · POSITION APPROXIMATE</span></div>
       </section>
       <aside className="inspector"><div className="section-kicker">INSPECTOR</div><h2>{selected?.label ?? 'Select an asset'}</h2><p className="subtle">{selected?.resourceId ?? 'Select an entity to inspect its state.'}</p>

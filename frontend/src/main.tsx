@@ -5,6 +5,7 @@ import './styles.css'
 import './scene-additions.css'
 import './replay.css'
 import './service-list.css'
+import './basemap.css'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)
