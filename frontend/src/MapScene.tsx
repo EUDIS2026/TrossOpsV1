@@ -25,9 +25,9 @@ function silhouette(entity: Entity): [number, number][] {
   return shape.map(([px, py]) => [x + (px * Math.cos(rad) + py * Math.sin(rad)) * scale, y + (py * Math.cos(rad) - px * Math.sin(rad)) * scale]) as [number, number][]
 }
 
-type Props = { scene: Scene | null; selectedId: string | null; showDependencies: boolean; onSelect: (id: string) => void }
+type Props = { scene: Scene | null; selectedId: string | null; selectedServiceId: string; showDependencies: boolean; onSelect: (id: string) => void }
 
-export function MapScene({ scene, selectedId, showDependencies, onSelect }: Props) {
+export function MapScene({ scene, selectedId, selectedServiceId, showDependencies, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
@@ -47,13 +47,13 @@ export function MapScene({ scene, selectedId, showDependencies, onSelect }: Prop
 
   useEffect(() => {
     const entities = scene?.entities ?? []
-    const service = scene?.services[0]
+    const service = scene?.services.find(item => item.id === selectedServiceId)
     const dependencyEntities = entities.filter(e => service?.requiredEntityIds.includes(e.id))
     overlay.current?.setProps({ layers: [
-      new PolygonLayer({
-        id: 'service-area', data: service ? [service] : [], getPolygon: s => s.area,
-        getFillColor: service?.status === 'unavailable' ? [111, 45, 48, 42] : [39, 117, 112, 35],
-        getLineColor: service?.status === 'unavailable' ? [211, 88, 83, 150] : [78, 166, 156, 130],
+      new PolygonLayer<Scene['services'][number]>({
+        id: 'service-area', data: scene?.services ?? [], getPolygon: s => s.area,
+        getFillColor: s => s.id === selectedServiceId ? (s.status === 'unavailable' ? [111, 45, 48, 52] : [39, 117, 112, 45]) : [27, 55, 67, 12],
+        getLineColor: s => s.id === selectedServiceId ? (s.status === 'unavailable' ? [211, 88, 83, 170] : [78, 166, 156, 160]) : [92, 127, 143, 70],
         getLineWidth: 1, lineWidthMinPixels: 1, stroked: true,
       }),
       new PathLayer({
@@ -61,7 +61,7 @@ export function MapScene({ scene, selectedId, showDependencies, onSelect }: Prop
         getColor: [104, 174, 193, 140], getWidth: 2, widthMinPixels: 2,
       }),
       new PathLayer({
-        id: 'dependency-links', data: showDependencies && dependencyEntities.length === 2 ? [{ path: dependencyEntities.map(e => [e.position.longitudeDeg, e.position.latitudeDeg]) }] : [],
+        id: 'dependency-links', data: showDependencies && dependencyEntities.length >= 2 ? [{ path: dependencyEntities.map(e => [e.position.longitudeDeg, e.position.latitudeDeg]) }] : [],
         getPath: item => item.path, getColor: service?.status === 'unavailable' ? [241, 105, 98, 220] : [255, 211, 106, 210],
         getWidth: 3, widthMinPixels: 3,
       }),
@@ -77,7 +77,7 @@ export function MapScene({ scene, selectedId, showDependencies, onSelect }: Prop
         getTextAnchor: 'middle', getAlignmentBaseline: 'top', fontFamily: 'Arial, sans-serif',
       }),
     ] })
-  }, [scene, selectedId, showDependencies])
+  }, [scene, selectedId, selectedServiceId, showDependencies])
 
   return <div className="map" ref={container} aria-label="Synthetic operations map" />
 }
