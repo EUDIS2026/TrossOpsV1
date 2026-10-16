@@ -15,7 +15,16 @@ export function App() {
   const [error, setError] = useState('')
   const revisionRequest = useRef(0)
 
-  useEffect(() => { fetch('/api/scene').then(r => { if (!r.ok) throw new Error(`Scene request failed: ${r.status}`); return r.json() }).then(setScene).catch(e => setError(String(e))) }, [])
+  async function refreshScene() {
+    setError('')
+    try {
+      const response = await fetch('/api/scene')
+      if (!response.ok) throw new Error(`Scene request failed: ${response.status}`)
+      setScene(await response.json())
+    } catch (e) { setError(String(e)) }
+  }
+
+  useEffect(() => { void refreshScene() }, [])
   const selected = scene?.entities.find(e => e.id === selectedId)
   const service = scene?.services.find(item => item.id === selectedServiceId)
   const replaying = !!scene && scene.worldRevision < scene.latestRevision
@@ -37,6 +46,11 @@ export function App() {
     setBusy(true); setError('')
     try {
       const response = await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assetId: selected.id, kind, expectedRevision: scene.worldRevision }) })
+      if (response.status === 409) {
+        await refreshScene()
+        setError('The world changed in another session. Latest revision loaded; review it before retrying.')
+        return
+      }
       if (!response.ok) throw new Error((await response.json()).detail ?? `Event failed: ${response.status}`)
       setScene(await response.json())
     } catch (e) { setError(String(e)) } finally { setBusy(false) }
@@ -44,6 +58,7 @@ export function App() {
 
   return <div className="shell">
     <header className="topbar"><div className="brand"><span className="brandmark">T</span><strong>TROSSOPS</strong><span className="divider" />OPERATIONS</div><div className="topmeta"><span className="live-dot" />{replaying ? 'REPLAY MODE' : 'SYNTHETIC WORLD'} <span className="revision">REV {scene?.worldRevision ?? '—'}</span></div></header>
+    {error && <div role="alert" className="status-banner"><span>{error}</span><button onClick={() => void refreshScene()}>Reload scene</button></div>}
     <main className="workspace">
       <aside className="sidebar"><div className="section-kicker">WORKSPACE</div><h1>Operations</h1><p className="subtle">Sector Alpha · synthetic exercise</p>
         <div className="separator" /><div className="section-kicker">FLEET ASSETS <span>{scene?.entities.length ?? 0}</span></div><input className="asset-search" type="search" aria-label="Search assets" placeholder="Search assets" value={search} onChange={event => setSearch(event.target.value)} />
@@ -61,7 +76,6 @@ export function App() {
         <div className="separator" /><div className="section-kicker">SERVICE CONSEQUENCE</div><div className={`service-card ${service?.status ?? ''}`}><strong>{service?.label ?? 'Loading…'}</strong><span>{service?.status?.toUpperCase() ?? '—'}</span><p>{service?.blockers.length ? service.blockers.join('; ') : 'All required assets operational.'}</p></div><p className="explainer">{service?.explanation}</p><button className={`dependency-toggle ${showDependencies ? 'on' : ''}`} onClick={() => setShowDependencies(value => !value)} aria-pressed={showDependencies}>Dependency X-ray {showDependencies ? 'on' : 'off'}</button>
         <div className="separator" /><div className="section-kicker">REVISION REPLAY</div><div className="replay-controls"><input aria-label="World revision" type="range" min="1" max={scene?.latestRevision ?? 1} value={scene?.worldRevision ?? 1} onChange={event => loadRevision(Number(event.target.value))} /><div><span>REV 1</span><strong>REV {scene?.worldRevision ?? 1} / {scene?.latestRevision ?? 1}</strong></div>{replaying && <button onClick={() => loadRevision(scene!.latestRevision)}>Return to latest</button>}</div>
         <div className="separator" /><div className="section-kicker">EVENT HISTORY</div><div className="timeline">{scene?.events.length ? [...scene.events].reverse().map(event => <div className="event" key={event.id}><b>{event.kind.toUpperCase()}</b><span>{event.assetId}</span><small>REV {event.worldRevision}</small></div>) : <p className="subtle">No events at this revision.</p>}</div>
-        {error && <div role="alert" className="error">{error}</div>}
       </aside>
     </main>
   </div>

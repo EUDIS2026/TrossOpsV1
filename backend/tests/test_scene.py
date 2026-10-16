@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
+import pytest
 
 from app.main import World, app
 
@@ -27,6 +29,15 @@ def test_event_store_survives_restart(tmp_path) -> None:
     restarted = World(path)
     assert restarted.snapshot()["worldRevision"] == 2
     assert all(service["status"] == "unavailable" for service in restarted.snapshot()["services"])
+
+
+def test_stale_revision_rejects_command_without_changing_world() -> None:
+    from app.main import EventIn
+    world = World()
+    with pytest.raises(HTTPException) as error:
+        world.apply(EventIn(assetId="uav-01", kind="fault", expectedRevision=2))
+    assert error.value.status_code == 409
+    assert world.snapshot()["worldRevision"] == 1
 
 
 def test_api_health_and_scene() -> None:
