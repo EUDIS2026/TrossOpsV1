@@ -8,6 +8,9 @@ export function App() {
   const [selectedServiceId, setSelectedServiceId] = useState('survey-sector-alpha')
   const [busy, setBusy] = useState(false)
   const [showDependencies, setShowDependencies] = useState(false)
+  const [showRoutes, setShowRoutes] = useState(true)
+  const [showAreas, setShowAreas] = useState(true)
+  const [search, setSearch] = useState('')
   const [basemapMode, setBasemapMode] = useState<'online' | 'local'>('online')
   const [error, setError] = useState('')
   const revisionRequest = useRef(0)
@@ -16,6 +19,7 @@ export function App() {
   const selected = scene?.entities.find(e => e.id === selectedId)
   const service = scene?.services.find(item => item.id === selectedServiceId)
   const replaying = !!scene && scene.worldRevision < scene.latestRevision
+  const visibleEntities = scene?.entities.filter(entity => `${entity.label} ${entity.kind} ${entity.resourceId}`.toLowerCase().includes(search.toLowerCase())) ?? []
 
   async function loadRevision(revision: number) {
     const request = ++revisionRequest.current
@@ -42,13 +46,14 @@ export function App() {
     <header className="topbar"><div className="brand"><span className="brandmark">T</span><strong>TROSSOPS</strong><span className="divider" />OPERATIONS</div><div className="topmeta"><span className="live-dot" />{replaying ? 'REPLAY MODE' : 'SYNTHETIC WORLD'} <span className="revision">REV {scene?.worldRevision ?? '—'}</span></div></header>
     <main className="workspace">
       <aside className="sidebar"><div className="section-kicker">WORKSPACE</div><h1>Operations</h1><p className="subtle">Sector Alpha · synthetic exercise</p>
-        <div className="separator" /><div className="section-kicker">FLEET ASSETS <span>{scene?.entities.length ?? 0}</span></div>
-        <div className="entity-list">{scene?.entities.map(e => <button key={e.id} className={`entity-row ${selectedId === e.id ? 'active' : ''}`} onClick={() => setSelectedId(e.id)}><span className={`entity-glyph ${e.condition}`} /> <span><strong>{e.label}</strong><small>{e.kind.replace('_', ' ')} · {e.condition}</small></span></button>)}</div>
+        <div className="separator" /><div className="section-kicker">FLEET ASSETS <span>{scene?.entities.length ?? 0}</span></div><input className="asset-search" type="search" aria-label="Search assets" placeholder="Search assets" value={search} onChange={event => setSearch(event.target.value)} />
+        <div className="entity-list">{visibleEntities.map(e => <button key={e.id} className={`entity-row ${selectedId === e.id ? 'active' : ''}`} onClick={() => setSelectedId(e.id)}><span className={`entity-glyph ${e.condition}`} /> <span><strong>{e.label}</strong><small>{e.kind.replace('_', ' ')} · {e.condition}</small></span></button>)}{visibleEntities.length === 0 && <p className="subtle">No matching assets.</p>}</div>
         <div className="separator" /><div className="section-kicker">SERVICE DEMAND <span>{scene?.services.length ?? 0}</span></div><div className="service-list">{scene?.services.map(item => <button key={item.id} className={`service-row ${item.id === selectedServiceId ? 'active' : ''}`} onClick={() => setSelectedServiceId(item.id)}><strong>{item.label}</strong><small className={item.status}>{item.status.toUpperCase()}</small></button>)}</div>
+        <div className="separator" /><div className="section-kicker">LAYERS</div><div className="layer-list"><button aria-pressed={showAreas} onClick={() => setShowAreas(value => !value)}>Service areas <span>{showAreas ? 'ON' : 'OFF'}</span></button><button aria-pressed={showRoutes} onClick={() => setShowRoutes(value => !value)}>Planned routes <span>{showRoutes ? 'ON' : 'OFF'}</span></button></div>
         <div className="sidebar-foot">{scene?.dataNotice ?? 'Connecting to scene…'}</div>
       </aside>
       <section className="scene-panel"><div className="map-head"><div><span className="section-kicker">OPERATIONAL SCENE</span><h2>Sector Alpha</h2></div><div className="map-controls"><button className={basemapMode === 'online' ? 'selected' : ''} onClick={() => setBasemapMode('online')}>Map</button><button className={basemapMode === 'local' ? 'selected' : ''} onClick={() => setBasemapMode('local')}>Local grid</button><div className="map-status">2D VIEW <span>·</span> SIMULATED</div></div></div>
-        <div className="map-wrap"><MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={showDependencies} basemapMode={basemapMode} onBasemapFailure={() => setBasemapMode('local')} onSelect={setSelectedId} /><div className="map-grid" aria-hidden="true" /><div className="map-corner">59° N<br />17° E</div><div className="map-badge">{basemapMode === 'online' ? 'OPENFREEMAP · SYNTHETIC SCENE' : 'LOCAL GRID · SYNTHETIC SCENE'}</div><div className="map-legend"><span><i className="legend-area" />Service area</span><span><i className="legend-route" />Planned route</span><span><i className="legend-asset" />Asset</span></div></div>
+        <div className="map-wrap"><MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={showDependencies} showRoutes={showRoutes} showAreas={showAreas} basemapMode={basemapMode} onBasemapFailure={() => setBasemapMode('local')} onSelect={setSelectedId} /><div className="map-grid" aria-hidden="true" /><div className="map-corner">59° N<br />17° E</div><div className="map-badge">{basemapMode === 'online' ? 'OPENFREEMAP · SYNTHETIC SCENE' : 'LOCAL GRID · SYNTHETIC SCENE'}</div><div className="map-legend"><span><i className="legend-area" />Service area</span><span><i className="legend-route" />Planned route</span><span><i className="legend-asset" />Asset</span></div></div>
         <div className="scene-footer"><span>NO LIVE TELEMETRY</span><span>MODEL {scene?.modelVersion ?? '—'}</span><span>WGS84 · POSITION APPROXIMATE</span></div>
       </section>
       <aside className="inspector"><div className="section-kicker">INSPECTOR</div><h2>{selected?.label ?? 'Select an asset'}</h2><p className="subtle">{selected?.resourceId ?? 'Select an entity to inspect its state.'}</p>

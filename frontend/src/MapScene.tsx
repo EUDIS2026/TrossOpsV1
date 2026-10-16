@@ -26,15 +26,16 @@ function silhouette(entity: Entity): [number, number][] {
   return shape.map(([px, py]) => [x + (px * Math.cos(rad) + py * Math.sin(rad)) * scale, y + (py * Math.cos(rad) - px * Math.sin(rad)) * scale]) as [number, number][]
 }
 
-type Props = { scene: Scene | null; selectedId: string | null; selectedServiceId: string; showDependencies: boolean; basemapMode: 'online' | 'local'; onBasemapFailure: () => void; onSelect: (id: string) => void }
+type Props = { scene: Scene | null; selectedId: string | null; selectedServiceId: string; showDependencies: boolean; showRoutes: boolean; showAreas: boolean; basemapMode: 'online' | 'local'; onBasemapFailure: () => void; onSelect: (id: string) => void }
 
-export function MapScene({ scene, selectedId, selectedServiceId, showDependencies, basemapMode, onBasemapFailure, onSelect }: Props) {
+export function MapScene({ scene, selectedId, selectedServiceId, showDependencies, showRoutes, showAreas, basemapMode, onBasemapFailure, onSelect }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const map = useRef<maplibregl.Map | null>(null)
   const overlay = useRef<MapboxOverlay | null>(null)
   const onSelectRef = useRef(onSelect)
   const basemapModeRef = useRef(basemapMode)
   const fallbackRef = useRef(onBasemapFailure)
+  const previousSelection = useRef(selectedId)
   onSelectRef.current = onSelect
   basemapModeRef.current = basemapMode
   fallbackRef.current = onBasemapFailure
@@ -56,18 +57,25 @@ export function MapScene({ scene, selectedId, selectedServiceId, showDependencie
   }, [basemapMode])
 
   useEffect(() => {
+    if (selectedId === previousSelection.current) return
+    previousSelection.current = selectedId
+    const selected = scene?.entities.find(entity => entity.id === selectedId)
+    if (selected && map.current) map.current.flyTo({ center: [selected.position.longitudeDeg, selected.position.latitudeDeg], zoom: Math.max(map.current.getZoom(), 10), duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 })
+  }, [selectedId, scene])
+
+  useEffect(() => {
     const entities = scene?.entities ?? []
     const service = scene?.services.find(item => item.id === selectedServiceId)
     const dependencyEntities = entities.filter(e => service?.requiredEntityIds.includes(e.id))
     overlay.current?.setProps({ layers: [
       new PolygonLayer<Scene['services'][number]>({
-        id: 'service-area', data: scene?.services ?? [], getPolygon: s => s.area,
+        id: 'service-area', data: showAreas ? scene?.services ?? [] : [], getPolygon: s => s.area,
         getFillColor: s => s.id === selectedServiceId ? (s.status === 'unavailable' ? [111, 45, 48, 52] : [39, 117, 112, 45]) : [27, 55, 67, 12],
         getLineColor: s => s.id === selectedServiceId ? (s.status === 'unavailable' ? [211, 88, 83, 170] : [78, 166, 156, 160]) : [92, 127, 143, 70],
         getLineWidth: 1, lineWidthMinPixels: 1, stroked: true,
       }),
       new PathLayer({
-        id: 'planned-routes', data: scene?.routes ?? [], getPath: route => route.coordinates,
+        id: 'planned-routes', data: showRoutes ? scene?.routes ?? [] : [], getPath: route => route.coordinates,
         getColor: [104, 174, 193, 140], getWidth: 2, widthMinPixels: 2,
       }),
       new PathLayer({
@@ -87,7 +95,7 @@ export function MapScene({ scene, selectedId, selectedServiceId, showDependencie
         getTextAnchor: 'middle', getAlignmentBaseline: 'top', fontFamily: 'Arial, sans-serif',
       }),
     ] })
-  }, [scene, selectedId, selectedServiceId, showDependencies])
+  }, [scene, selectedId, selectedServiceId, showDependencies, showRoutes, showAreas])
 
   return <div className="map" ref={container} aria-label="Synthetic operations map" />
 }
