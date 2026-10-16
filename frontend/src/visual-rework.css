@@ -1,0 +1,96 @@
+:root{color:#edf5f6;background:#071019}
+button{transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
+button:focus-visible,input:focus-visible{outline:2px solid #a0f3df;outline-offset:2px}
+.ws-shell{height:100vh;overflow:hidden;background:#071019}
+.ws-topbar{height:64px;padding:0 25px;background:linear-gradient(90deg,#0a141d 0%,#0e1b24 55%,#0a141d 100%);border-bottom:1px solid #7896a526;box-shadow:0 8px 30px #0004;position:relative;z-index:12}
+.ws-brand-icon{width:34px;height:34px;border:1px solid #85e6d866;border-radius:10px;background:radial-gradient(circle at 35% 25%,#3c867c,#16343a 65%);box-shadow:0 0 24px #46c6b82b;color:#d7fff8}
+.ws-wordmark{font-size:18px;letter-spacing:.16em}
+.ws-top-center{font-size:10px;color:#abc6ca;letter-spacing:.19em}
+.ws-top-actions button{border-radius:9px;width:31px;height:31px}
+.ws-top-actions button:hover{background:#ffffff12}
+.ws-avatar{border-radius:9px;background:#1b363f;border-color:#759d9a}
+.ws-shell .ws-body{display:block;position:relative;height:calc(100vh - 64px);min-height:520px;overflow:hidden}
+.ws-shell .ws-stage{position:absolute;inset:0;display:block;z-index:0;background:#0b1922}
+.ws-stage-vignette{background:linear-gradient(180deg,#071019ae 0%,#07101928 20%,transparent 42%,transparent 64%,#071019b8 100%),radial-gradient(circle at 53% 48%,transparent 32%,#0610184d 100%)}
+.ws-shell .ws-rail,.ws-shell .ws-sidebar,.ws-shell .ws-inspector{position:absolute;z-index:7;border:1px solid #9ebabe27;background:linear-gradient(160deg,#10222ae9,#0b1823e9 58%,#0b1720ee);backdrop-filter:blur(22px) saturate(135%);-webkit-backdrop-filter:blur(22px) saturate(135%);box-shadow:0 22px 65px #0009,0 1px 0 #ffffff11 inset;border-radius:18px}
+.ws-shell .ws-rail{left:18px;top:18px;bottom:18px;width:54px;display:flex;padding:10px 0 15px;align-items:center}
+.ws-rail-group,.ws-rail-bottom{gap:7px}
+.ws-rail button{width:40px;height:40px;border:0;border-radius:11px;color:#8cabb6}
+.ws-rail button:hover,.ws-rail button.active{border:0;background:linear-gradient(135deg,#347368a8,#224e55a8);color:#d5fff4;box-shadow:0 0 0 1px #77cabe44 inset}
+.ws-rail-bottom span{font-size:9px;color:#83a8af}
+.ws-shell .ws-sidebar{left:83px;top:18px;bottom:18px;width:296px;overflow-y:auto;overflow-x:hidden;display:flex;transition:transform .28s ease,opacity .28s ease}
+.ws-shell .ws-inspector{right:18px;top:18px;bottom:18px;width:326px;overflow-y:auto;overflow-x:hidden;display:flex;transition:transform .28s ease,opacity .28s ease}
+.ws-shell.sidebar-collapsed .ws-sidebar{transform:translateX(calc(-100% - 100px));opacity:0;pointer-events:none}
+.ws-shell.inspector-collapsed .ws-inspector{transform:translateX(calc(100% + 40px));opacity:0;pointer-events:none}
+.ws-sidebar-heading{padding:25px 20px 17px;border-color:#ffffff12}
+.ws-panel-heading-line{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.ws-panel-heading-line button{display:grid;place-items:center;flex:none;width:29px;height:29px;padding:0;color:#a6c0c8;border:1px solid #ffffff1a;border-radius:8px;background:#ffffff0a}
+.ws-panel-heading-line button:hover{background:#ffffff1c;color:#fff}
+.ws-sidebar h1,.ws-inspector h2{font-size:22px;letter-spacing:-.045em}
+.ws-eyebrow{letter-spacing:.16em;color:#88dccc}
+.ws-sidebar-heading p{font-size:11px;color:#a1b5bd}
+.ws-search{height:41px;margin:17px 14px 20px;border-radius:11px;border-color:#8fafb52c;background:#06131bb5}
+.ws-search input{font-size:12px}
+.ws-list-head{margin-bottom:10px;font-size:9px;color:#8facb7}
+.ws-list-head.ws-spaced{border-color:#ffffff13}
+.ws-asset-list,.ws-service-list,.ws-city-list,.ws-event-list{padding:0 11px}
+.ws-asset,.ws-service,.ws-city{padding:11px 10px;border-radius:11px;margin:2px 0;gap:11px}
+.ws-asset:hover,.ws-asset.active,.ws-service:hover,.ws-service.active,.ws-city:hover,.ws-city.active{background:linear-gradient(95deg,#2b60617d,#1b354064);border-color:#76c8be4a}
+.ws-asset strong,.ws-service strong,.ws-city strong{font-size:12px;font-weight:600}
+.ws-asset small,.ws-service small,.ws-city small{font-size:10px;color:#91aab4}
+.ws-asset-symbol,.ws-service-icon{width:30px;height:30px;border-radius:9px;border-color:#7bd5c653}
+.ws-layer-row{border:0;border-radius:10px;margin-bottom:2px;padding:11px 9px}
+.ws-layer-row:hover{background:#ffffff0d}
+.ws-layer-copy strong{font-size:12px;font-weight:600}
+.ws-layer-copy small{font-size:10px}
+.ws-check{border-radius:7px}
+.ws-sidebar-footer{border-color:#ffffff13;font-size:10px}
+.ws-source-note{border-radius:12px;background:#1b3c424f;border-color:#8fd8d136;font-size:11px}
+.ws-event{border-color:#ffffff13}
+.ws-scene-header{left:404px;right:369px;top:29px;gap:18px;align-items:flex-start;transition:left .28s ease,right .28s ease}
+.ws-scene-kicker{font-size:10px;letter-spacing:.18em;color:#b6e5df}
+.ws-scene-header h2{font-size:31px;font-weight:600;margin:9px 0 2px;line-height:1.1;text-shadow:0 3px 18px #0009}
+.ws-scene-header p{font-size:12px;color:#b4c8cb;text-shadow:0 2px 10px #000}
+.ws-mode-switch{flex:none;border-radius:13px;padding:4px;border-color:#c0dcda39;background:#10212bda;backdrop-filter:blur(18px);box-shadow:0 12px 35px #0007}
+.ws-mode-switch button{border-radius:9px;padding:10px 11px;letter-spacing:.03em;font-size:11px}
+.ws-mode-switch button:hover,.ws-mode-switch button.active{background:#46857886;color:#eafff8}
+.ws-map-tools{right:369px;top:112px;border-radius:10px;overflow:hidden;background:#10212bce;border-color:#c0dcda30;transition:right .28s ease}
+.ws-map-tools button{font-size:9px;padding:8px 11px}
+.ws-map-tools button.active{background:#386d69a6;color:#b8f7e9}
+.ws-map-meta{left:404px;bottom:145px;transition:left .28s ease}
+.ws-weather-ribbon{left:404px;bottom:100px;max-width:calc(100% - 792px);border-radius:10px;background:#10232ddc;border-color:#bedbd738;backdrop-filter:blur(14px);box-shadow:0 12px 30px #0006;transition:left .28s ease}
+.ws-timeline{left:397px;right:361px;bottom:18px;height:66px;border-radius:15px;background:#10212be9;border-color:#b7d2d531;backdrop-filter:blur(18px);box-shadow:0 16px 42px #0009;transition:left .28s ease,right .28s ease}
+.ws-timeline button{border-radius:8px}
+.ws-preview-banner{left:404px;top:166px;border-radius:12px;backdrop-filter:blur(15px)}
+.ws-preview-banner button{border-radius:7px}
+.ws-error{left:404px;right:369px;top:154px;border-radius:11px}
+.ws-shell.sidebar-collapsed .ws-scene-header,.ws-shell.sidebar-collapsed .ws-map-meta,.ws-shell.sidebar-collapsed .ws-weather-ribbon,.ws-shell.sidebar-collapsed .ws-preview-banner,.ws-shell.sidebar-collapsed .ws-error{left:101px}
+.ws-shell.sidebar-collapsed .ws-timeline{left:94px}
+.ws-shell.inspector-collapsed .ws-scene-header,.ws-shell.inspector-collapsed .ws-error{right:24px}
+.ws-shell.inspector-collapsed .ws-map-tools{right:24px}
+.ws-shell.inspector-collapsed .ws-timeline{right:18px}
+.ws-shell.inspector-collapsed .ws-weather-ribbon{max-width:calc(100% - 130px)}
+.ws-inspector-head{padding:25px 20px 18px}
+.ws-inspector-head button{width:29px;height:29px;border:1px solid #ffffff1a;border-radius:8px;background:#ffffff0a}
+.ws-inspector-tabs{border-color:#ffffff18;padding:0 20px}
+.ws-inspector-content{padding:20px 19px 26px}
+.ws-object-card{border-radius:15px;padding:17px;background:radial-gradient(circle at 5% 0%,#3e847252,transparent 53%),linear-gradient(135deg,#1c3940,#14242f);border-color:#a3d8cd42}
+.ws-object-icon{border-radius:12px;background:#31756c8c}
+.ws-status-line,.ws-detail-grid>div,.ws-mini-events>div,.ws-weather-metrics>div,.ws-forecast-meta>div{border-color:#ffffff15}
+.ws-detail-grid span,.ws-forecast-meta span{font-size:9px}
+.ws-detail-grid b,.ws-forecast-meta b{font-size:12px}
+.ws-object-actions button,.ws-preview-actions button,.ws-ai-card>button{border-radius:9px;font-size:11px}
+.ws-section-title{font-size:10px;margin-top:30px}
+.ws-consequence{border-radius:13px;padding:15px;background:linear-gradient(135deg,#1e48407d,#142d32);border-color:#7cbbac55}
+.ws-consequence.unavailable{background:linear-gradient(135deg,#663b32a6,#2b2228);border-color:#db8c735c}
+.ws-xray{border-radius:9px}
+.ws-ai-card{border-radius:13px;padding:14px;background:linear-gradient(135deg,#1e394183,#14242f);border-color:#80b9b444}
+.ws-ai-card>p,.ws-consequence p,.ws-evidence{font-size:11px}
+.ws-weather-hero{border-radius:16px;background:radial-gradient(circle at 17% 20%,#458f926e,#1a343d 62%);border-color:#9fd6d04d}
+.ws-inspector-footer{border-color:#ffffff17}
+.ws-stage .maplibregl-ctrl-bottom-right{bottom:147px;right:365px}
+@media(max-width:1500px){.ws-scene-header{display:block}.ws-mode-switch{width:max-content;margin-top:18px}.ws-map-tools{top:177px}.ws-preview-banner{top:216px}}
+@media(max-width:1180px){.ws-shell .ws-sidebar{width:255px}.ws-shell .ws-inspector{width:288px}.ws-scene-header,.ws-map-meta,.ws-weather-ribbon,.ws-preview-banner,.ws-error{left:365px}.ws-timeline{left:358px;right:323px}.ws-scene-header,.ws-error{right:329px}.ws-map-tools{right:329px}.ws-weather-ribbon{max-width:calc(100% - 700px)}.ws-stage .maplibregl-ctrl-bottom-right{right:324px}}
+@media(max-width:900px){.ws-shell .ws-sidebar{width:278px}.ws-shell .ws-inspector{width:310px}.ws-scene-header,.ws-map-meta,.ws-weather-ribbon,.ws-preview-banner,.ws-error{left:385px}.ws-timeline{left:378px;right:18px}.ws-scene-header,.ws-error{right:24px}.ws-map-tools{right:24px}.ws-weather-ribbon{max-width:calc(100% - 420px)}.ws-shell.inspector-collapsed .ws-inspector{transform:translateX(calc(100% + 40px))}.ws-stage .maplibregl-ctrl-bottom-right{right:18px}.ws-shell:not(.inspector-collapsed) .ws-timeline{right:328px}.ws-shell:not(.inspector-collapsed) .ws-scene-header{right:328px}.ws-shell:not(.inspector-collapsed) .ws-map-tools{right:328px}}
+@media(max-width:760px){.ws-shell .ws-body{height:calc(100dvh - 64px);min-height:460px}.ws-topbar{padding:0 14px}.ws-top-revision{font-size:9px}.ws-shell .ws-rail{left:10px;top:10px;bottom:auto;width:50px;padding:7px 0;max-height:calc(100% - 20px)}.ws-rail button{width:37px;height:37px}.ws-rail-bottom{display:none}.ws-shell .ws-sidebar{left:69px;top:10px;bottom:10px;width:min(312px,calc(100vw - 80px))}.ws-shell .ws-inspector{left:69px;right:10px;top:auto;bottom:10px;width:auto;height:min(58dvh,580px);max-height:none}.ws-shell.inspector-collapsed .ws-inspector{transform:translateY(calc(100% + 30px))}.ws-scene-header,.ws-shell.sidebar-collapsed .ws-scene-header{left:73px;right:10px;top:17px;display:block}.ws-scene-kicker{font-size:8px;letter-spacing:.09em;gap:5px}.ws-scene-header h2{font-size:22px;margin-top:7px}.ws-scene-header p{display:none}.ws-mode-switch{margin-top:13px;max-width:calc(100vw - 85px);overflow-x:auto}.ws-mode-switch button{font-size:10px;padding:9px 8px;white-space:nowrap}.ws-mode-switch button svg{width:13px}.ws-map-tools,.ws-shell.inspector-collapsed .ws-map-tools{right:10px;top:136px}.ws-map-tools button{font-size:8px;padding:7px 8px}.ws-map-meta,.ws-shell.sidebar-collapsed .ws-map-meta{left:73px;bottom:131px;font-size:8px;gap:8px}.ws-map-meta span:last-child{display:none}.ws-weather-ribbon,.ws-shell.sidebar-collapsed .ws-weather-ribbon{left:73px;bottom:87px;max-width:calc(100vw - 83px);padding:0 9px;gap:6px;font-size:9px}.ws-weather-ribbon>span:nth-child(2),.ws-weather-ribbon small{display:none}.ws-timeline,.ws-shell.sidebar-collapsed .ws-timeline,.ws-shell.inspector-collapsed .ws-timeline{left:69px;right:10px;bottom:10px;height:63px;padding:0 10px;gap:7px}.ws-timeline-title span{display:none}.ws-timeline-title b{display:none}.ws-timeline-count{font-size:10px}.ws-preview-banner,.ws-shell.sidebar-collapsed .ws-preview-banner{left:73px;right:10px;top:184px;flex-wrap:wrap;font-size:9px}.ws-error,.ws-shell.sidebar-collapsed .ws-error{left:73px;right:10px;top:183px}.ws-stage .maplibregl-ctrl-bottom-right{right:8px;bottom:143px}.ws-shell:not(.inspector-collapsed) .ws-timeline{right:10px}.ws-shell:not(.inspector-collapsed) .ws-scene-header{right:10px}.ws-shell:not(.inspector-collapsed) .ws-map-tools{right:10px}}
+@media(prefers-reduced-motion:reduce){button,.ws-shell .ws-sidebar,.ws-shell .ws-inspector,.ws-scene-header,.ws-timeline,.ws-weather-ribbon,.ws-map-tools{transition:none}}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Activity, AlertTriangle, ArrowUpRight, Building2, ChevronDown, CloudSun, Compass,
   Crosshair, Database, Eye, EyeOff, Globe2, History, Layers3, Map as MapIcon,
-  MapPin, Mountain, Radar, RotateCcw, Search, Shield, Sparkles, Thermometer, Wind,
+  MapPin, Mountain, PanelLeftClose, Radar, RotateCcw, Search, Shield, Sparkles, Thermometer, Wind, X,
 } from 'lucide-react'
 import { MapScene } from './MapScene'
 import type { Entity, Forecast, ScenarioPreview, Scene, ViewMode } from './types'
@@ -69,6 +69,8 @@ export function App() {
   const [analysisAccessToken, setAnalysisAccessToken] = useState('')
   const [preview, setPreview] = useState<ScenarioPreview | null>(null)
   const [previewBusy, setPreviewBusy] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 760)
+  const [inspectorOpen, setInspectorOpen] = useState(() => window.innerWidth > 760)
   const revisionRequest = useRef(0)
 
   const displayScene = preview?.candidate ?? scene
@@ -171,13 +173,19 @@ export function App() {
   function focusCity(key: string) {
     setSelectedLocation(key)
     setInspectorTab('environment')
+    setInspectorOpen(true)
     const point = forecasts.find(item => item.location === key)?.gridPoint ?? pointFallbacks[key]
     setFocus({ point, zoom: 9.4, key: Date.now() })
   }
 
-  function selectAsset(id: string) { setSelectedId(id); setInspectorTab('asset') }
+  function selectAsset(id: string) { setSelectedId(id); setInspectorTab('asset'); setInspectorOpen(true) }
 
-  return <div className="ws-shell">
+  function openPanel(next: Panel) {
+    setSidebarOpen(current => next === panel ? !current : true)
+    setPanel(next)
+  }
+
+  return <div className={`ws-shell ${sidebarOpen ? '' : 'sidebar-collapsed'} ${inspectorOpen ? '' : 'inspector-collapsed'}`}>
     <header className="ws-topbar">
       <div className="ws-brand"><div className="ws-brand-icon"><Radar size={22} strokeWidth={1.5} /></div><span className="ws-wordmark">TROSS<span>OPS</span></span><span className="ws-brand-rule" /><span className="ws-product">GEOSPATIAL WORKSTATION</span></div>
       <div className="ws-top-center"><span className="ws-online-pip" /> SYNTHETIC EXERCISE <span className="ws-top-separator">/</span> SWEDEN <span className="ws-top-separator">/</span> {preview ? 'WHAT-IF PREVIEW' : replaying ? 'REPLAY' : 'CURRENT REVISION'}</div>
@@ -186,12 +194,12 @@ export function App() {
 
     <div className="ws-body">
       <nav className="ws-rail" aria-label="Workstation panels">
-        <div className="ws-rail-group"><button className={panel === 'layers' ? 'active' : ''} title="Layers" aria-label="Layers" onClick={() => setPanel('layers')}><Layers3 size={20} /></button><button className={panel === 'environment' ? 'active' : ''} title="Environment" aria-label="Environment" onClick={() => setPanel('environment')}><CloudSun size={20} /></button><button className={panel === 'activity' ? 'active' : ''} title="Activity" aria-label="Activity" onClick={() => setPanel('activity')}><History size={20} /></button></div>
+        <div className="ws-rail-group"><button className={sidebarOpen && panel === 'layers' ? 'active' : ''} title="Layers" aria-label="Layers" aria-pressed={sidebarOpen && panel === 'layers'} onClick={() => openPanel('layers')}><Layers3 size={20} /></button><button className={sidebarOpen && panel === 'environment' ? 'active' : ''} title="Environment" aria-label="Environment" aria-pressed={sidebarOpen && panel === 'environment'} onClick={() => openPanel('environment')}><CloudSun size={20} /></button><button className={sidebarOpen && panel === 'activity' ? 'active' : ''} title="Activity" aria-label="Activity" aria-pressed={sidebarOpen && panel === 'activity'} onClick={() => openPanel('activity')}><History size={20} /></button></div>
         <div className="ws-rail-bottom"><button title="Focus Sweden" aria-label="Focus Sweden" onClick={() => setFocus({ point: [17, 63], zoom: 4.5, key: Date.now() })}><Crosshair size={19} /></button><span>SE</span></div>
       </nav>
 
       <aside className="ws-sidebar">
-        <div className="ws-sidebar-heading"><span className="ws-eyebrow">WORKSPACE / {panel.toUpperCase()}</span><h1>{panel === 'layers' ? 'Scene layers' : panel === 'environment' ? 'Environment' : 'Activity log'}</h1><p>{panel === 'layers' ? 'Compose the operational picture.' : panel === 'environment' ? 'Public forecasts from SMHI.' : 'Revisioned synthetic event history.'}</p></div>
+        <div className="ws-sidebar-heading"><div className="ws-panel-heading-line"><span className="ws-eyebrow">WORKSPACE / {panel.toUpperCase()}</span><button title="Close sidebar" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}><PanelLeftClose size={17} /></button></div><h1>{panel === 'layers' ? 'Scene layers' : panel === 'environment' ? 'Environment' : 'Activity log'}</h1><p>{panel === 'layers' ? 'Compose the operational picture.' : panel === 'environment' ? 'Public forecasts from SMHI.' : 'Revisioned synthetic event history.'}</p></div>
         {panel === 'layers' && <>
           <AssetList entities={displayScene?.entities ?? []} selectedId={selectedId} search={search} setSearch={setSearch} onSelect={selectAsset} />
           <div className="ws-list-head ws-spaced"><span>SERVICE DEMAND</span><span>{scene?.services.length ?? 0}</span></div>
@@ -220,7 +228,7 @@ export function App() {
         {error && <div role="alert" className="ws-error"><AlertTriangle size={16} /><span>{error}</span><button onClick={() => void refreshScene()}>Reload scene</button></div>}
       </main>
 
-      <aside className="ws-inspector"><div className="ws-inspector-head"><div><span className="ws-eyebrow">CONTEXT INSPECTOR</span><h2>{inspectorTab === 'asset' ? 'Asset detail' : 'Environmental data'}</h2></div></div><div className="ws-inspector-tabs"><button className={inspectorTab === 'asset' ? 'active' : ''} onClick={() => setInspectorTab('asset')}>ASSET</button><button className={inspectorTab === 'environment' ? 'active' : ''} onClick={() => setInspectorTab('environment')}>ENVIRONMENT</button></div>
+      <aside className="ws-inspector"><div className="ws-inspector-head"><div><span className="ws-eyebrow">CONTEXT INSPECTOR</span><h2>{inspectorTab === 'asset' ? 'Asset detail' : 'Environmental data'}</h2></div><button title="Close inspector" aria-label="Close inspector" onClick={() => setInspectorOpen(false)}><X size={18} /></button></div><div className="ws-inspector-tabs"><button className={inspectorTab === 'asset' ? 'active' : ''} onClick={() => setInspectorTab('asset')}>ASSET</button><button className={inspectorTab === 'environment' ? 'active' : ''} onClick={() => setInspectorTab('environment')}>ENVIRONMENT</button></div>
         {inspectorTab === 'asset' ? <div className="ws-inspector-content"><div className="ws-object-card"><div className="ws-object-icon">{selected?.kind === 'facility' ? '▣' : selected?.kind === 'ground_vehicle' ? '◆' : '✦'}</div><div><span className="ws-eyebrow">{preview ? 'HYPOTHETICAL ENTITY' : 'SYNTHETIC ENTITY'}</span><h3>{selected?.label ?? 'Select an asset'}</h3><p>{selected?.resourceId ?? 'No selection'}</p></div></div>{selected && <><div className="ws-status-line"><span>OPERATIONAL STATE</span><b className={selected.condition}>{selected.condition.toUpperCase()}</b></div><div className="ws-detail-grid"><div><span>CLASS</span><b>{selected.kind.replace('_', ' ')}</b></div><div><span>HEADING</span><b>{selected.headingDeg}°</b></div><div><span>WORLD REV</span><b>{selected.worldRevision}</b></div><div><span>PROVENANCE</span><b>{preview ? 'WHAT-IF' : 'SIMULATED'}</b></div></div><div className="ws-object-actions"><button disabled={busy || replaying || !!preview || selected.condition === 'unavailable'} onClick={() => void update('fault')}>Record fault</button><button disabled={busy || replaying || !!preview || selected.condition === 'normal'} onClick={() => void update('repair')}>Record repair</button></div><div className="ws-preview-actions">{preview ? <button onClick={() => setPreview(null)}>Return to current world</button> : <button disabled={previewBusy} onClick={() => void previewEvent(selected.condition === 'unavailable' ? 'repair' : 'fault')}>{previewBusy ? 'Computing preview…' : `Preview ${selected.condition === 'unavailable' ? 'repair' : 'fault'} impact`}</button>}</div></>}
           <div className="ws-section-title"><Activity size={15} /> SERVICE CONSEQUENCE</div><div className={`ws-consequence ${service?.status ?? ''}`}><div><span>{service?.label ?? 'Loading...'}</span><b>{service?.status?.toUpperCase() ?? '—'}</b></div><p>{service?.blockers.length ? service.blockers.join(' · ') : 'All required assets operational.'}</p></div><p className="ws-evidence">Computed from required entity conditions at world revision {scene?.worldRevision ?? '—'}. Synthetic exercise.</p><button className={`ws-xray ${layers.dependencies ? 'active' : ''}`} onClick={() => toggleLayer('dependencies')}><Eye size={15} /> Dependency X-ray <span>{layers.dependencies ? 'ON' : 'OFF'}</span></button>
           <div className="ws-section-title"><Sparkles size={15} /> SCENE ANALYSIS</div><div className="ws-ai-card"><div className="ws-ai-status"><span>{analysisStatus === 'configured' ? 'OPENAI ADAPTER READY' : 'ADAPTER ONLY'}</span><b>{analysisStatus === 'configured' ? 'CONFIGURED' : 'NO CREDENTIAL'}</b></div>{analysisStatus === 'configured' ? <><input type="password" aria-label="Analysis access token" placeholder="Analysis access token" value={analysisAccessToken} onChange={event => setAnalysisAccessToken(event.target.value)} /><button disabled={analysisBusy || !analysisAccessToken || !!preview} onClick={() => void requestAnalysis()}>{analysisBusy ? 'Generating…' : 'Analyze selected service'}</button></> : <p>Server key, model, and access token required. No model call is made.</p>}{preview && <p>Model analysis uses committed revisions. Exit preview first.</p>}{!preview && analysis && analysis.worldRevision === scene?.worldRevision && analysis.serviceId === selectedServiceId && <div className="ws-ai-answer"><span>MODEL GENERATED · {analysis.model} · REV {analysis.worldRevision}</span><p>{analysis.answer}</p></div>}</div>
