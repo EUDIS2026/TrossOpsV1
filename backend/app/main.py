@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+import os
+from pathlib import Path
+import sqlite3
 from threading import Lock
 from typing import Literal
 
@@ -38,8 +41,9 @@ class EventIn(BaseModel):
 
 
 class World:
-    def __init__(self) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
         self.lock = Lock()
+        self.db_path = db_path
         self.revision = 1
         self.entities = [
             Entity(id="uav-01", resourceId="asset-uav-01", kind="fixed_wing", label="Survey aircraft 01", position=Position(longitudeDeg=17.24, latitudeDeg=59.36), headingDeg=48),
@@ -49,6 +53,22 @@ class World:
         ]
         self.initial_entities = deepcopy(self.entities)
         self.events: list[dict] = []
+        if self.db_path is not None:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            with sqlite3.connect(self.db_path) as connection:
+                connection.execute("CREATE TABLE IF NOT EXISTS scene_events (world_revision INTEGER PRIMARY KEY, asset_id TEXT NOT NULL, kind TEXT NOT NULL, recorded_at TEXT NOT NULL)")
+                rows = connection.execute("SELECT world_revision, asset_id, kind, recorded_at FROM scene_events ORDER BY world_revision").fetchall()
+            for revision, asset_id, kind, recorded_at in rows:
+                if revision != self.revision + 1:
+                    raise RuntimeError("Event store contains a non-sequential world revision")
+                entity = next((item for item in self.entities if item.id == asset_id), None)
+                if entity is None or kind not in ("fault", "repair"):
+                    raise RuntimeError("Event store contains an invalid scene event")
+                entity.condition = "unavailable" if kind == "fault" else "normal"
+                self.revision = revision
+                self.events.append({"id": f"event-{revision}", "assetId": asset_id, "kind": kind, "worldRevision": revision, "recordedAt": recorded_at, "sourceKind": "simulated"})
+            for entity in self.entities:
+                entity.worldRevision = self.revision
 
     def snapshot(self, revision: int | None = None) -> dict:
         with self.lock:
@@ -95,8 +115,13 @@ class World:
             entity = next((e for e in self.entities if e.id == event.assetId), None)
             if entity is None:
                 raise HTTPException(404, "Asset not found")
+            next_revision = self.revision + 1
+            recorded_at = datetime.now(timezone.utc).isoformat()
+            if self.db_path is not None:
+                with sqlite3.connect(self.db_path) as connection:
+                    connection.execute("INSERT INTO scene_events (world_revision, asset_id, kind, recorded_at) VALUES (?, ?, ?, ?)", (next_revision, entity.id, event.kind, recorded_at))
             entity.condition = "unavailable" if event.kind == "fault" else "normal"
-            self.revision += 1
+            self.revision = next_revision
             for item in self.entities:
                 item.worldRevision = self.revision
             self.events.append({
@@ -104,13 +129,14 @@ class World:
                 "assetId": entity.id,
                 "kind": event.kind,
                 "worldRevision": self.revision,
-                "recordedAt": datetime.now(timezone.utc).isoformat(),
+                "recordedAt": recorded_at,
                 "sourceKind": "simulated",
             })
         return self.snapshot()
 
 
-world = World()
+default_db_path = Path(__file__).parents[1] / "data" / "demo.sqlite"
+world = World(Path(os.environ.get("TROSSOPS_DB_PATH", str(default_db_path))))
 app = FastAPI(title="TrossOps Synthetic Scene API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_methods=["GET", "POST"], allow_headers=["*"])
 

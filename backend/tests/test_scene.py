@@ -19,6 +19,16 @@ def test_fault_changes_revision_and_computed_service() -> None:
     assert replay["events"] == []
 
 
+def test_event_store_survives_restart(tmp_path) -> None:
+    from app.main import EventIn
+    path = tmp_path / "world.sqlite"
+    first = World(path)
+    first.apply(EventIn(assetId="support-01", kind="fault", expectedRevision=1))
+    restarted = World(path)
+    assert restarted.snapshot()["worldRevision"] == 2
+    assert all(service["status"] == "unavailable" for service in restarted.snapshot()["services"])
+
+
 def test_api_health_and_scene() -> None:
     client = TestClient(app)
     assert client.get("/api/health").json()["status"] == "working"
