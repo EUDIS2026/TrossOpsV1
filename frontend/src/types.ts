@@ -19,7 +19,7 @@ export type Forecast = {
   data?: Record<string, number | null>; units?: Record<string, string>;
 }
 
-export type ViewMode = 'map' | 'terrain' | 'globe'
+export type ViewMode = 'map' | 'terrain' | 'city' | 'globe'
 
 export type ScenarioPreview = {
   status: 'preview'; baseRevision: number; assetId: string; eventKind: 'fault' | 'repair';

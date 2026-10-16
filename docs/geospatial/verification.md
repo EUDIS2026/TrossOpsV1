@@ -6,7 +6,7 @@
 
 - `cd backend; python -m pytest -q`: **10 passed**. Tests cover revisioned synthetic world behavior, read-only what-if impact, SMHI forecast parsing, LLM fact selection/output parsing, and disabled/token-gated adapter responses.
 - `cd frontend; npm.cmd run build`: **passed** with MapLibre GL JS 6.14.0 and deck.gl 9.4.0. Vite reports a large main JS chunk; splitting remains open.
-- `cd frontend; node scripts/verify-local.mjs`: **passed**, page errors **0**. Exercised search, county toggle, terrain and globe mode switches, weather inspector, what-if fault → unchanged world revision → exit preview, fault → service consequence → replay → repair, and forced online tile failure → local grid.
+- `cd frontend; node scripts/verify-local.mjs`: **passed**, page errors **0**. Exercised search, county toggle, terrain, Stockholm City 3D, and globe modes, weather inspector, what-if fault → unchanged world revision → exit preview, fault → service consequence → replay → repair, and forced online tile failure → local grid.
 - The browser showed **adapter-only** for the analysis section; no model request was made.
 - Live API request for Stockholm returned a connected SMHI forecast with air temperature, wind speed/direction, cloud cover, and forecast timestamps.
 
@@ -14,6 +14,7 @@
 
 - [2D map](local-browser.png)
 - [Terrain perspective](local-browser-terrain.png)
+- [Stockholm City 3D](local-browser-city.png)
 - [Globe and county boundaries](local-browser-globe.png)
 - [Weather inspector](local-browser-weather.png)
 - [Hypothetical fault preview](local-browser-preview.png)

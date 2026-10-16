@@ -14,6 +14,25 @@ const localStyle: maplibregl.StyleSpecification = {
 const onlineStyle = 'https://tiles.openfreemap.org/styles/dark'
 maplibregl.setWorkerUrl(mapWorkerUrl)
 
+function addCityBuildings(instance: maplibregl.Map) {
+  if (!instance.getSource('openfreemap-buildings')) {
+    instance.addSource('openfreemap-buildings', { type: 'vector', url: 'https://tiles.openfreemap.org/planet' })
+  }
+  if (!instance.getLayer('city-buildings')) {
+    instance.addLayer({
+      id: 'city-buildings', type: 'fill-extrusion', source: 'openfreemap-buildings',
+      'source-layer': 'building', minzoom: 15,
+      filter: ['!=', ['get', 'hide_3d'], true],
+      paint: {
+        'fill-extrusion-color': '#679aa6',
+        'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 0],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.66,
+      },
+    })
+  }
+}
+
 function silhouette(entity: Entity): [number, number][] {
   const { longitudeDeg: x, latitudeDeg: y } = entity.position
   const shape = entity.kind === 'fixed_wing'
@@ -75,6 +94,7 @@ export function MapScene({ scene, selectedId, selectedServiceId, showDependencie
         instance.setTerrain({ source: 'mapterhorn-dem', exaggeration: 1.4 })
         if (!instance.getLayer('terrain-shade')) instance.addLayer({ id: 'terrain-shade', type: 'hillshade', source: 'mapterhorn-dem', paint: { 'hillshade-shadow-color': '#0a1821', 'hillshade-highlight-color': '#d0dedf', 'hillshade-exaggeration': 0.25 } })
       }
+      if (viewModeRef.current === 'city' && basemapModeRef.current === 'online') addCityBuildings(instance)
     })
     const deck = new MapLibreOverlay({ interleaved: false, layers: [] })
     overlay.current = deck
@@ -94,13 +114,15 @@ export function MapScene({ scene, selectedId, selectedServiceId, showDependencie
     instance.setProjection({ type: viewMode === 'globe' ? 'globe' : 'mercator' })
     if (viewMode !== 'terrain' && instance.getTerrain()) instance.setTerrain(null)
     if (viewMode !== 'terrain' && instance.getLayer('terrain-shade')) instance.removeLayer('terrain-shade')
+    if (instance.getLayer('city-buildings')) instance.setLayoutProperty('city-buildings', 'visibility', viewMode === 'city' ? 'visible' : 'none')
+    if (viewMode === 'city' && basemapMode === 'online') addCityBuildings(instance)
     if (viewMode === 'terrain' && basemapMode === 'online' && instance.isStyleLoaded()) {
       if (!instance.getSource('mapterhorn-dem')) instance.addSource('mapterhorn-dem', { type: 'raster-dem', url: 'https://tiles.mapterhorn.com/tilejson.json' })
       instance.setTerrain({ source: 'mapterhorn-dem', exaggeration: 1.4 })
       if (!instance.getLayer('terrain-shade')) instance.addLayer({ id: 'terrain-shade', type: 'hillshade', source: 'mapterhorn-dem' })
     }
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    instance.easeTo(viewMode === 'terrain' ? { pitch: 68, bearing: -28, zoom: Math.max(instance.getZoom(), 9.4), duration: reduced ? 0 : 900 } : viewMode === 'globe' ? { center: [17, 63], pitch: 0, bearing: 0, zoom: 3, duration: reduced ? 0 : 900 } : { pitch: 0, bearing: 0, zoom: Math.max(instance.getZoom(), 8.7), duration: reduced ? 0 : 700 })
+    instance.easeTo(viewMode === 'terrain' ? { pitch: 68, bearing: -28, zoom: Math.max(instance.getZoom(), 9.4), duration: reduced ? 0 : 900 } : viewMode === 'city' ? { center: [18.063, 59.332], pitch: 62, bearing: -25, zoom: 16.2, duration: reduced ? 0 : 1100 } : viewMode === 'globe' ? { center: [17, 63], pitch: 0, bearing: 0, zoom: 3, duration: reduced ? 0 : 900 } : { pitch: 0, bearing: 0, zoom: Math.max(instance.getZoom(), 8.7), duration: reduced ? 0 : 700 })
   }, [viewMode, basemapMode])
 
   useEffect(() => {
