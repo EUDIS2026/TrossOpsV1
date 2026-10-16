@@ -32,4 +32,8 @@ npm.cmd run build
 node scripts/verify-local.mjs
 ```
 
-The browser test uses installed Microsoft Edge and running API/UI servers. See [integration matrix](docs/geospatial/integration-matrix.md) and [verification log](docs/geospatial/verification.md) for exact limits. Hosted persistence, live telemetry, and LLM responses are not yet connected.
+The browser test uses installed Microsoft Edge and running API/UI servers. See [integration matrix](docs/geospatial/integration-matrix.md) and [verification log](docs/geospatial/verification.md) for exact limits. Hosted persistence and live telemetry are not connected.
+
+## Optional scene analysis
+
+The OpenAI Responses adapter is **adapter-only** until `TROSSOPS_ENABLE_LLM=1`, `OPENAI_API_KEY`, `TROSSOPS_LLM_MODEL`, and `TROSSOPS_LLM_ACCESS_TOKEN` are set on the API server. Enter the access token in the inspector to authorize each analysis request. The token remains in browser memory; the API key stays server-side. A request sends only the selected synthetic service facts at a chosen world revision, sets `store: false`, and labels output as model-generated. This path was tested with mocks and in its disabled state; no paid model call has been made. See [the environment template](.env.example).

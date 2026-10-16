@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Activity, AlertTriangle, ArrowUpRight, ChevronDown, CloudSun, Compass,
   Crosshair, Database, Eye, EyeOff, Globe2, History, Layers3, Map as MapIcon,
-  MapPin, Mountain, Radar, RotateCcw, Search, Shield, Thermometer, Wind, X,
+  MapPin, Mountain, Radar, RotateCcw, Search, Shield, Sparkles, Thermometer, Wind,
 } from 'lucide-react'
 import { MapScene } from './MapScene'
 import type { Entity, Forecast, Scene, ViewMode } from './types'
@@ -63,6 +63,10 @@ export function App() {
   const [focus, setFocus] = useState<{ point: [number, number]; zoom: number; key: number } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [analysisStatus, setAnalysisStatus] = useState<'adapter-only' | 'configured'>('adapter-only')
+  const [analysis, setAnalysis] = useState<{ answer: string; worldRevision: number; serviceId: string; model: string } | null>(null)
+  const [analysisBusy, setAnalysisBusy] = useState(false)
+  const [analysisAccessToken, setAnalysisAccessToken] = useState('')
   const revisionRequest = useRef(0)
 
   const selected = scene?.entities.find(entity => entity.id === selectedId)
@@ -98,6 +102,7 @@ export function App() {
   useEffect(() => {
     void refreshScene()
     void refreshForecasts()
+    void fetch('/api/analysis/status').then(response => response.json()).then(value => setAnalysisStatus(value.status)).catch(() => setAnalysisStatus('adapter-only'))
     const timer = window.setInterval(() => void refreshForecasts(), 10 * 60 * 1000)
     return () => window.clearInterval(timer)
   }, [])
@@ -127,6 +132,20 @@ export function App() {
       if (!response.ok) throw new Error((await response.json()).detail ?? `Event failed: ${response.status}`)
       setScene(await response.json())
     } catch (cause) { setError(String(cause)) } finally { setBusy(false) }
+  }
+
+  async function requestAnalysis() {
+    if (!scene || analysisStatus !== 'configured') return
+    setAnalysisBusy(true)
+    setError('')
+    try {
+      const response = await fetch('/api/analysis/service', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-TrossOps-Analysis-Token': analysisAccessToken },
+        body: JSON.stringify({ serviceId: selectedServiceId, worldRevision: scene.worldRevision }),
+      })
+      if (!response.ok) throw new Error('Model analysis is unavailable.')
+      setAnalysis(await response.json())
+    } catch (cause) { setError(String(cause)) } finally { setAnalysisBusy(false) }
   }
 
   function focusCity(key: string) {
@@ -180,9 +199,10 @@ export function App() {
         {error && <div role="alert" className="ws-error"><AlertTriangle size={16} /><span>{error}</span><button onClick={() => void refreshScene()}>Reload scene</button></div>}
       </main>
 
-      <aside className="ws-inspector"><div className="ws-inspector-head"><div><span className="ws-eyebrow">CONTEXT INSPECTOR</span><h2>{inspectorTab === 'asset' ? 'Asset detail' : 'Environmental data'}</h2></div><button title="Close inspector" onClick={() => setInspectorTab(inspectorTab === 'asset' ? 'environment' : 'asset')}><X size={17} /></button></div><div className="ws-inspector-tabs"><button className={inspectorTab === 'asset' ? 'active' : ''} onClick={() => setInspectorTab('asset')}>ASSET</button><button className={inspectorTab === 'environment' ? 'active' : ''} onClick={() => setInspectorTab('environment')}>ENVIRONMENT</button></div>
+      <aside className="ws-inspector"><div className="ws-inspector-head"><div><span className="ws-eyebrow">CONTEXT INSPECTOR</span><h2>{inspectorTab === 'asset' ? 'Asset detail' : 'Environmental data'}</h2></div></div><div className="ws-inspector-tabs"><button className={inspectorTab === 'asset' ? 'active' : ''} onClick={() => setInspectorTab('asset')}>ASSET</button><button className={inspectorTab === 'environment' ? 'active' : ''} onClick={() => setInspectorTab('environment')}>ENVIRONMENT</button></div>
         {inspectorTab === 'asset' ? <div className="ws-inspector-content"><div className="ws-object-card"><div className="ws-object-icon">{selected?.kind === 'facility' ? '▣' : selected?.kind === 'ground_vehicle' ? '◆' : '✦'}</div><div><span className="ws-eyebrow">SYNTHETIC ENTITY</span><h3>{selected?.label ?? 'Select an asset'}</h3><p>{selected?.resourceId ?? 'No selection'}</p></div></div>{selected && <><div className="ws-status-line"><span>OPERATIONAL STATE</span><b className={selected.condition}>{selected.condition.toUpperCase()}</b></div><div className="ws-detail-grid"><div><span>CLASS</span><b>{selected.kind.replace('_', ' ')}</b></div><div><span>HEADING</span><b>{selected.headingDeg}°</b></div><div><span>WORLD REV</span><b>{selected.worldRevision}</b></div><div><span>PROVENANCE</span><b>SIMULATED</b></div></div><div className="ws-object-actions"><button disabled={busy || replaying || selected.condition === 'unavailable'} onClick={() => void update('fault')}>Record fault</button><button disabled={busy || replaying || selected.condition === 'normal'} onClick={() => void update('repair')}>Record repair</button></div></>}
           <div className="ws-section-title"><Activity size={15} /> SERVICE CONSEQUENCE</div><div className={`ws-consequence ${service?.status ?? ''}`}><div><span>{service?.label ?? 'Loading...'}</span><b>{service?.status?.toUpperCase() ?? '—'}</b></div><p>{service?.blockers.length ? service.blockers.join(' · ') : 'All required assets operational.'}</p></div><p className="ws-evidence">Computed from required entity conditions at world revision {scene?.worldRevision ?? '—'}. Synthetic exercise.</p><button className={`ws-xray ${layers.dependencies ? 'active' : ''}`} onClick={() => toggleLayer('dependencies')}><Eye size={15} /> Dependency X-ray <span>{layers.dependencies ? 'ON' : 'OFF'}</span></button>
+          <div className="ws-section-title"><Sparkles size={15} /> SCENE ANALYSIS</div><div className="ws-ai-card"><div className="ws-ai-status"><span>{analysisStatus === 'configured' ? 'OPENAI ADAPTER READY' : 'ADAPTER ONLY'}</span><b>{analysisStatus === 'configured' ? 'CONFIGURED' : 'NO CREDENTIAL'}</b></div>{analysisStatus === 'configured' ? <><input type="password" aria-label="Analysis access token" placeholder="Analysis access token" value={analysisAccessToken} onChange={event => setAnalysisAccessToken(event.target.value)} /><button disabled={analysisBusy || !analysisAccessToken} onClick={() => void requestAnalysis()}>{analysisBusy ? 'Generating…' : 'Analyze selected service'}</button></> : <p>Server key, model, and access token required. No model call is made.</p>}{analysis && analysis.worldRevision === scene?.worldRevision && analysis.serviceId === selectedServiceId && <div className="ws-ai-answer"><span>MODEL GENERATED · {analysis.model} · REV {analysis.worldRevision}</span><p>{analysis.answer}</p></div>}</div>
           <div className="ws-section-title"><History size={15} /> RECENT EVENTS</div><div className="ws-mini-events">{scene?.events.length ? [...scene.events].reverse().slice(0, 3).map(event => <div key={event.id}><span className={event.kind}>{event.kind.toUpperCase()}</span><span>{event.assetId}</span><b>REV {event.worldRevision}</b></div>) : <p>No events at this revision.</p>}</div>
         </div> : <div className="ws-inspector-content"><div className="ws-weather-title"><span className="ws-eyebrow">SMHI / POINT FORECAST</span><h3>{forecast?.label ?? selectedLocation}</h3><p>{forecast?.status === 'connected' ? `Valid ${formatTime(forecast.validTime)}` : 'Live forecast unavailable'}</p></div>{forecast?.status === 'connected' ? <><div className="ws-weather-hero"><Thermometer size={22} /><strong>{numberText(forecast.data?.air_temperature, 1)}<sup>°C</sup></strong><span>FORECAST AIR TEMPERATURE</span></div><div className="ws-weather-metrics"><div><Wind size={17} /><span>WIND SPEED</span><b>{numberText(forecast.data?.wind_speed, 1)} m/s</b></div><div><Compass size={17} /><span>WIND FROM</span><b>{numberText(forecast.data?.wind_from_direction)}°</b></div><div><CloudSun size={17} /><span>CLOUD COVER</span><b>{numberText(forecast.data?.cloud_area_fraction)} / 8</b></div><div><CloudSun size={17} /><span>PRECIP. PROB.</span><b>{numberText(forecast.data?.probability_of_precipitation)}%</b></div></div><div className="ws-forecast-meta"><div><span>FORECAST ISSUED</span><b>{formatTime(forecast.referenceTime)}</b></div><div><span>GRID POINT</span><b>{forecast.gridPoint?.map(value => value.toFixed(3)).join(', ') ?? '—'}</b></div><a href={forecast.sourceUrl} target="_blank" rel="noreferrer">SMHI source <ArrowUpRight size={14} /></a></div></> : <p className="ws-unavailable">{forecast?.reason ?? 'Connecting to SMHI...'}</p>}<div className="ws-source-note"><Shield size={16} /><span>Forecast values are modelled, time stamped environmental data. They are not observations or synthetic operational facts.</span></div></div>}
         <div className="ws-inspector-footer"><span className="ws-online-pip" /> {scene?.sourceKind?.toUpperCase() ?? 'CONNECTING'} WORLD <span>MODEL {scene?.modelVersion ?? '—'}</span></div>

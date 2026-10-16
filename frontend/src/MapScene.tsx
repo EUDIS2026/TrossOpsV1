@@ -93,6 +93,7 @@ export function MapScene({ scene, selectedId, selectedServiceId, showDependencie
     if (!instance || !instance.isStyleLoaded()) return
     instance.setProjection({ type: viewMode === 'globe' ? 'globe' : 'mercator' })
     if (viewMode !== 'terrain' && instance.getTerrain()) instance.setTerrain(null)
+    if (viewMode !== 'terrain' && instance.getLayer('terrain-shade')) instance.removeLayer('terrain-shade')
     if (viewMode === 'terrain' && basemapMode === 'online' && instance.isStyleLoaded()) {
       if (!instance.getSource('mapterhorn-dem')) instance.addSource('mapterhorn-dem', { type: 'raster-dem', url: 'https://tiles.mapterhorn.com/tilejson.json' })
       instance.setTerrain({ source: 'mapterhorn-dem', exaggeration: 1.4 })

@@ -10,6 +10,6 @@
 | Swedish weather | working | Live SMHI SNOW1G point forecasts at four public city coordinates, with forecast and valid times. Weather does not feed service feasibility. |
 | OpenFreeMap / local grid | working | Online style loaded and forced failure fell back to the local scene in Edge. Public map provider has no SLA. |
 | Hosted database | planned | Local SQLite file is unsuitable for Vercel serverless persistence; provision a transactional Postgres service before deployment. |
-| LLM scene analysis | planned | Add a credential-gated adapter and explicit provenance before claims of live AI analysis. |
+| LLM scene analysis | adapter-only | OpenAI Responses adapter and access-token gate implemented; disabled-state API/UI and pure functions tested. Needs user-provided key, model, token, and an authorized paid live call. |
 | Asset/ERP records, telemetry | planned | Define authorized source, freshness and identity contracts. Current assets remain synthetic. |
 | NATS / SpacetimeDB | planned | Connect after the source and projection contracts exist. |

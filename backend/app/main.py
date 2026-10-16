@@ -3,16 +3,19 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timezone
 import os
+import hmac
 from pathlib import Path
 import sqlite3
 from threading import Lock
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .weather import PUBLIC_POINTS, WeatherService
+from . import advisor
 
 
 class Position(BaseModel):
@@ -40,6 +43,11 @@ class EventIn(BaseModel):
     assetId: str
     kind: Literal["fault", "repair"]
     expectedRevision: int = Field(ge=1)
+
+
+class AnalysisIn(BaseModel):
+    serviceId: str
+    worldRevision: int = Field(ge=1)
 
 
 class World:
@@ -169,3 +177,25 @@ def environment_forecast(location: str) -> dict:
     if location not in PUBLIC_POINTS:
         raise HTTPException(404, "Forecast point not found")
     return weather.get(location)
+
+
+@app.get("/api/analysis/status")
+def analysis_status() -> dict:
+    return advisor.status()
+
+
+@app.post("/api/analysis/service")
+def analyze_service(request: AnalysisIn, x_trossops_analysis_token: str = Header(default="")) -> dict:
+    if advisor.status()["status"] != "configured":
+        raise HTTPException(503, "LLM adapter is not configured")
+    if not hmac.compare_digest(x_trossops_analysis_token, os.environ["TROSSOPS_LLM_ACCESS_TOKEN"]):
+        raise HTTPException(401, "Analysis access token required")
+    scene_data = world.snapshot(request.worldRevision)
+    try:
+        facts = advisor.scene_facts(scene_data, request.serviceId)
+    except KeyError:
+        raise HTTPException(404, "Service not found") from None
+    try:
+        return advisor.analyze(facts)
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(502, "Model analysis unavailable") from None

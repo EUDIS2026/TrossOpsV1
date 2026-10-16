@@ -4,9 +4,10 @@
 
 ## Executed
 
-- `cd backend; python -m pytest -q`: **5 passed**. Tests cover revisioned synthetic world behavior and SMHI forecast parsing.
+- `cd backend; python -m pytest -q`: **9 passed**. Tests cover revisioned synthetic world behavior, SMHI forecast parsing, LLM fact selection/output parsing, and disabled/token-gated adapter responses.
 - `cd frontend; npm.cmd run build`: **passed** with MapLibre GL JS 6.14.0 and deck.gl 9.4.0. Vite reports a large main JS chunk; splitting remains open.
 - `cd frontend; node scripts/verify-local.mjs`: **passed**, page errors **0**. Exercised search, county toggle, terrain and globe mode switches, weather inspector, fault → service consequence → replay → repair, and forced online tile failure → local grid.
+- The browser showed **adapter-only** for the analysis section; no model request was made.
 - Live API request for Stockholm returned a connected SMHI forecast with air temperature, wind speed/direction, cloud cover, and forecast timestamps.
 
 ## Artifacts
@@ -20,4 +21,4 @@
 
 ## Limits
 
-The terrain view uses real elevation tiles but synthetic service areas are illustrative extrusions; deck.gl overlays are not draped onto terrain. SCB boundaries are simplified for thematic display. Weather is a forecast, not an observation, and does not drive service status. No FPS, cinematic quality, hosted persistence, live telemetry, LLM, or production deployment claim is made.
+The terrain view uses real elevation tiles but synthetic service areas are illustrative extrusions; deck.gl overlays are not draped onto terrain. SCB boundaries are simplified for thematic display. Weather is a forecast, not an observation, and does not drive service status. No FPS, cinematic quality, hosted persistence, live telemetry, live LLM, or production deployment claim is made.
