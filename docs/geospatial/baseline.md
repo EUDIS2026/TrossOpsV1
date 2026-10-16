@@ -7,13 +7,13 @@ The repository began as an empty clone with instructions, a README, and the geos
 ## Current integration surfaces
 
 - `GET /api/health`: service and mode metadata.
-- `GET /api/scene`: revisioned synthetic scene snapshot, entities, computed service state, and event log.
+- `GET /api/scene?revision=N`: revisioned synthetic scene snapshot, entities, computed service states, and event log.
 - `POST /api/events`: revision checked synthetic fault/repair command.
 - Frontend scene, fleet selection, inspector, event history, and service consequence.
 
 ## Risks and limitations
 
-- State is process memory; restart resets the scenario. Multi-user persistence and replay are planned.
+- State is process memory; restart resets the scenario. Revision replay works, while multi-user persistence is planned.
 - The map uses an empty local style and synthetic positions. Licensed basemap/terrain and actual vector geography are planned.
 - Entity silhouettes are GPU polygons, not geodetically sized models. GLB assets and LOD are planned.
 - No telemetry, ERP, SpacetimeDB, NATS, Cesium, external tiles, or live integrations are connected.
