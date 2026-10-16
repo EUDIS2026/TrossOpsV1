@@ -1,0 +1,15 @@
+---
+description: TrossOps product invariants for every change
+alwaysApply: true
+---
+
+# Product invariants
+
+- Outcomes over inventory: model what the fleet can **do**, not only what exists.
+- One coherent world/revision across map, graphs, KPIs, and explanations.
+- Separate simulated truth, observations, inferences, predictions, and counterfactuals.
+- Real algorithms for recommendations — no UI conditionals pretending to be analysis.
+- Honest failure: `UNKNOWN`, stale, timeout, infeasible are valid.
+- Professional UX: no taglines under titles, no sci-fi HUD noise.
+- Adapters are `connected`, `simulated`, `configured-not-connected`, `unavailable`, or `planned` — never fake success.
+- Synthetic data must be labeled synthetic. No invented Saab/military facts.

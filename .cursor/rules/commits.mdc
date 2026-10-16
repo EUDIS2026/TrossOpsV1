@@ -1,0 +1,13 @@
+---
+description: Small conventional Git commits throughout TrossOps development
+alwaysApply: true
+---
+
+# Git commits
+
+- Make **many small commits** at verified milestones, not end-of-session dumps.
+- Use conventional prefixes: `feat`, `fix`, `test`, `refactor`, `docs`, `chore`, `perf`, `build`.
+- One concern per commit. Message explains **why**.
+- Do not commit `.env`, secrets, `node_modules`, `.venv`, or generated caches.
+- Do not force-push, amend pushed commits, or rewrite `main` history.
+- Only commit when the user asked, or they have standing instruction to checkpoint frequently in this project — then ask if unclear.
