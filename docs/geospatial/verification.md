@@ -4,7 +4,7 @@
 
 ## Executed
 
-- `cd backend; python -m pytest -q`: **3 passed**. A synthetic support fault changes revision and both computed services; revision 1 replays its prior state; a file-backed event store survives a new `World` instance; health and scene endpoints respond.
+- `cd backend; python -m pytest -q`: **4 passed**. A synthetic support fault changes revision and both computed services; revision 1 replays its prior state; a file-backed event store survives a new `World` instance; stale revisions are rejected without mutation; health and scene endpoints respond.
 - `cd frontend; npm.cmd run build`: **passed** with MapLibre GL JS 6.14.0. Vite reports a large 2.19 MB main JS chunk; bundle splitting remains open.
 - `cd frontend; npm.cmd audit --json`: **0 vulnerabilities** after updating MapLibre from 5.x.
 - `cd frontend; node scripts/verify-local.mjs`: **passed** in installed Edge. Page errors: **0**. Verified online basemap rendering, scene load, asset search, route layer control, service selection, dependency control, fault command, service change, revision replay, return to latest, and forced tile-failure fallback.
@@ -20,3 +20,5 @@
 ## Limits
 
 The browser check exercises the synthetic SQLite-backed API and public OpenFreeMap tiles. It does not verify hosted persistence, real telemetry, 3D, multi-user consistency, frame time, or production deployment. No FPS claim is made. The browser script assumes Edge is installed at the standard Windows path.
+
+The UI's new stale-revision recovery banner passes TypeScript/build checks, but its concurrent-browser interaction has not yet been exercised in Edge.
