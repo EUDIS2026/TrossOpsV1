@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from .weather import PUBLIC_POINTS, WeatherService
+
 
 class Position(BaseModel):
     longitudeDeg: float = Field(ge=-180, le=180)
@@ -137,6 +139,7 @@ class World:
 
 default_db_path = Path(__file__).parents[1] / "data" / "demo.sqlite"
 world = World(Path(os.environ.get("TROSSOPS_DB_PATH", str(default_db_path))))
+weather = WeatherService()
 app = FastAPI(title="TrossOps Synthetic Scene API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
@@ -154,3 +157,15 @@ def scene(revision: int | None = None) -> dict:
 @app.post("/api/events")
 def apply_event(event: EventIn) -> dict:
     return world.apply(event)
+
+
+@app.get("/api/environment/points")
+def environment_points() -> dict:
+    return {"source": "public city reference points", "points": PUBLIC_POINTS}
+
+
+@app.get("/api/environment/forecast/{location}")
+def environment_forecast(location: str) -> dict:
+    if location not in PUBLIC_POINTS:
+        raise HTTPException(404, "Forecast point not found")
+    return weather.get(location)

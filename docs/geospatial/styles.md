@@ -1,9 +1,11 @@
-# Basemap styles and attribution
+# Geographic sources and attribution
 
-The online mode uses [OpenFreeMap's dark MapLibre style](https://tiles.openfreemap.org/styles/dark), checked live on 16 October 2026. The provider's [quick start](https://openfreemap.org/quick_start/) lists the dark style and MapLibre setup. [OpenFreeMap](https://openfreemap.org/) permits website and commercial use without a key and requires attribution. MapLibre displays the style's OpenFreeMap, OpenMapTiles, and OpenStreetMap attribution in the map control.
+The dark basemap is [OpenFreeMap Dark](https://tiles.openfreemap.org/styles/dark), using its MapLibre style and visible attribution to OpenFreeMap, OpenMapTiles, and OpenStreetMap. The public instance has no service-level agreement. No basemap tiles are bundled.
 
-The local-grid mode is a bundled empty MapLibre style plus a UI grid; it works without a tile service and deliberately does not imply real geographic context. If the online style errors, the client switches to this local mode. The user may also switch modes explicitly.
+Terrain mode uses [Mapterhorn elevation tiles](https://mapterhorn.com/data-access/) through its public TileJSON endpoint. MapLibre adds the elevation source and displays its attribution. Service polygons extrude by an illustrative 500 m; that height is not a measured range or asset altitude.
 
-OpenFreeMap's public instance has no SLA. No OpenFreeMap tiles are bundled or redistributed in this repository. Its documented offline download limit is 3,000 tiles or 50 MB per download, with no more than four parallel requests; this project does not perform offline tile downloads.
+County outlines come from [Statistics Sweden's digital boundaries](https://www.scb.se/hitta-statistik/regional-statistik-och-kartor/regionala-indelningar/digitala-granser/) under CC0. `scripts/convert_scb_counties.py` converts the 21 county shapes from SWEREF99 TM to a bundled WGS84 GeoJSON file. SCB states that these boundaries are simplified for thematic display and are unsuitable for precise boundary analysis.
 
-All service polygons, planned routes, and asset positions are synthetic TrossOps scenario content supplied by the API. They are separate from OpenStreetMap data.
+Weather uses the [SMHI SNOW1G point forecast](https://opendata.smhi.se/metfcst/snow1gv1/examples). Values, issue time, valid time, and returned grid point come from the live SMHI response. Four requested city coordinates are public reference points. A missing source returns `unavailable` and no guessed value.
+
+The local-grid mode is an empty bundled MapLibre style. It works without map tiles but gives no real geographic context. All operational assets, service areas, routes, and event revisions are synthetic TrossOps scenario content.

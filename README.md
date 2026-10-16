@@ -1,6 +1,6 @@
 # TrossOps Geospatial
 
-An early, runnable slice of the geospatial workstation described in [the implementation brief](docs/briefs/TROSSOPS_GEOSPATIAL_MASTER_IMPLEMENTATION_PROMPT.md). All scenario data is synthetic. Current status: **partial**.
+A running, partial geospatial workstation based on [the implementation brief](docs/briefs/TROSSOPS_GEOSPATIAL_MASTER_IMPLEMENTATION_PROMPT.md). Operational assets, routes, areas, and service consequences are synthetic. County boundaries and weather forecasts are public Swedish data, labelled separately from the scenario.
 
 ## Local run
 
@@ -20,7 +20,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:5173`. Select an asset, record a fault, and observe the revision, condition, service consequence, and event history. Select either service, reveal dependencies, scrub revisions, and switch between the online dark map and local grid. Record a repair to restore the service. The local SQLite event store survives API restarts at `backend/data/demo.sqlite` (ignored by Git). Set `TROSSOPS_DB_PATH` before starting the API to use another local path. See [basemap attribution](docs/geospatial/styles.md).
+Open `http://127.0.0.1:5173`. Switch between map, terrain, and globe views; turn on SCB county boundaries; inspect timestamped SMHI forecasts for four Swedish cities; and switch between the online dark map and local grid. Select an asset, record a fault, and observe the revision, condition, service consequence, and event history. Scrub revisions and record a repair to restore the service. The local SQLite event store survives API restarts at `backend/data/demo.sqlite` (ignored by Git). Set `TROSSOPS_DB_PATH` before starting the API to use another local path. See [data sources and attribution](docs/geospatial/styles.md).
 
 ## Checks
 
@@ -29,6 +29,7 @@ cd backend
 python -m pytest -q
 cd ..\frontend
 npm.cmd run build
+node scripts/verify-local.mjs
 ```
 
-See [baseline](docs/geospatial/baseline.md) and [integration matrix](docs/geospatial/integration-matrix.md) for exact boundaries.
+The browser test uses installed Microsoft Edge and running API/UI servers. See [integration matrix](docs/geospatial/integration-matrix.md) and [verification log](docs/geospatial/verification.md) for exact limits. Hosted persistence, live telemetry, and LLM responses are not yet connected.

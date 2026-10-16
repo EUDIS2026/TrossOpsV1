@@ -1,19 +1,77 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  Activity, AlertTriangle, ArrowUpRight, ChevronDown, CloudSun, Compass,
+  Crosshair, Database, Eye, EyeOff, Globe2, History, Layers3, Map as MapIcon,
+  MapPin, Mountain, Radar, RotateCcw, Search, Shield, Thermometer, Wind, X,
+} from 'lucide-react'
 import { MapScene } from './MapScene'
-import type { Scene } from './types'
+import type { Entity, Forecast, Scene, ViewMode } from './types'
+
+type Panel = 'layers' | 'environment' | 'activity'
+type LayerKey = 'areas' | 'routes' | 'counties' | 'weather' | 'dependencies'
+
+const pointFallbacks: Record<string, [number, number]> = {
+  stockholm: [18.06, 59.33], goteborg: [11.97, 57.71], malmo: [13, 55.61], kiruna: [20.22, 67.86],
+}
+const cityOrder = ['stockholm', 'goteborg', 'malmo', 'kiruna']
+
+function formatTime(value?: string): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function numberText(value: number | null | undefined, digits = 0): string {
+  return typeof value === 'number' ? value.toFixed(digits) : '—'
+}
+
+function LayerSwitch({ label, detail, checked, onClick }: { label: string; detail: string; checked: boolean; onClick: () => void }) {
+  return <button className="ws-layer-row" aria-pressed={checked} onClick={onClick}>
+    <span className={`ws-check ${checked ? 'active' : ''}`}>{checked ? <Eye size={12} /> : <EyeOff size={12} />}</span>
+    <span className="ws-layer-copy"><strong>{label}</strong><small>{detail}</small></span>
+    <span className={`ws-layer-state ${checked ? 'on' : ''}`}>{checked ? 'ON' : 'OFF'}</span>
+  </button>
+}
+
+function AssetList({ entities, selectedId, search, setSearch, onSelect }: {
+  entities: Entity[]; selectedId: string | null; search: string; setSearch: (value: string) => void; onSelect: (id: string) => void;
+}) {
+  const visible = entities.filter(entity => `${entity.label} ${entity.kind} ${entity.resourceId}`.toLowerCase().includes(search.toLowerCase()))
+  return <>
+    <label className="ws-search"><Search size={15} /><input aria-label="Search assets" placeholder="Search assets" value={search} onChange={event => setSearch(event.target.value)} /></label>
+    <div className="ws-list-head"><span>SCENE ENTITIES</span><span>{entities.length.toString().padStart(2, '0')}</span></div>
+    <div className="ws-asset-list">{visible.map(entity => <button className={`ws-asset ${selectedId === entity.id ? 'active' : ''}`} key={entity.id} onClick={() => onSelect(entity.id)}>
+      <span className={`ws-asset-symbol ${entity.condition}`}>{entity.kind === 'facility' ? '▣' : entity.kind === 'ground_vehicle' ? '◆' : '✦'}</span>
+      <span><strong>{entity.label}</strong><small>{entity.kind.replace('_', ' ')} <i /> {entity.condition}</small></span>
+      <ArrowUpRight size={14} className="ws-asset-arrow" />
+    </button>)}{visible.length === 0 && <p className="ws-empty">No matching assets.</p>}</div>
+  </>
+}
 
 export function App() {
   const [scene, setScene] = useState<Scene | null>(null)
+  const [forecasts, setForecasts] = useState<Forecast[]>([])
+  const [weatherLoading, setWeatherLoading] = useState(true)
+  const [panel, setPanel] = useState<Panel>('layers')
   const [selectedId, setSelectedId] = useState<string | null>('uav-01')
   const [selectedServiceId, setSelectedServiceId] = useState('survey-sector-alpha')
-  const [busy, setBusy] = useState(false)
-  const [showDependencies, setShowDependencies] = useState(false)
-  const [showRoutes, setShowRoutes] = useState(true)
-  const [showAreas, setShowAreas] = useState(true)
-  const [search, setSearch] = useState('')
+  const [selectedLocation, setSelectedLocation] = useState('stockholm')
+  const [inspectorTab, setInspectorTab] = useState<'asset' | 'environment'>('asset')
+  const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [basemapMode, setBasemapMode] = useState<'online' | 'local'>('online')
+  const [layers, setLayers] = useState<Record<LayerKey, boolean>>({ areas: true, routes: true, counties: false, weather: true, dependencies: false })
+  const [search, setSearch] = useState('')
+  const [focus, setFocus] = useState<{ point: [number, number]; zoom: number; key: number } | null>(null)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const revisionRequest = useRef(0)
+
+  const selected = scene?.entities.find(entity => entity.id === selectedId)
+  const service = scene?.services.find(item => item.id === selectedServiceId)
+  const forecast = forecasts.find(item => item.location === selectedLocation)
+  const replaying = !!scene && scene.worldRevision < scene.latestRevision
+  const unavailableCount = scene?.services.filter(item => item.status === 'unavailable').length ?? 0
+
+  function toggleLayer(key: LayerKey) { setLayers(current => ({ ...current, [key]: !current[key] })) }
 
   async function refreshScene() {
     setError('')
@@ -21,14 +79,28 @@ export function App() {
       const response = await fetch('/api/scene')
       if (!response.ok) throw new Error(`Scene request failed: ${response.status}`)
       setScene(await response.json())
-    } catch (e) { setError(String(e)) }
+    } catch (cause) { setError(String(cause)) }
   }
 
-  useEffect(() => { void refreshScene() }, [])
-  const selected = scene?.entities.find(e => e.id === selectedId)
-  const service = scene?.services.find(item => item.id === selectedServiceId)
-  const replaying = !!scene && scene.worldRevision < scene.latestRevision
-  const visibleEntities = scene?.entities.filter(entity => `${entity.label} ${entity.kind} ${entity.resourceId}`.toLowerCase().includes(search.toLowerCase())) ?? []
+  async function refreshForecasts() {
+    setWeatherLoading(true)
+    const results = await Promise.all(cityOrder.map(async location => {
+      try {
+        const response = await fetch(`/api/environment/forecast/${location}`)
+        if (!response.ok) throw new Error('Forecast request failed')
+        return await response.json() as Forecast
+      } catch { return { status: 'unavailable', source: 'SMHI SNOW1G point forecast', kind: 'forecast', location, label: location, reason: 'Forecast source unavailable.' } as Forecast }
+    }))
+    setForecasts(results)
+    setWeatherLoading(false)
+  }
+
+  useEffect(() => {
+    void refreshScene()
+    void refreshForecasts()
+    const timer = window.setInterval(() => void refreshForecasts(), 10 * 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   async function loadRevision(revision: number) {
     const request = ++revisionRequest.current
@@ -38,12 +110,13 @@ export function App() {
       if (!response.ok) throw new Error(`Revision ${revision} could not be loaded`)
       const result: Scene = await response.json()
       if (request === revisionRequest.current) setScene(result)
-    } catch (e) { if (request === revisionRequest.current) setError(String(e)) }
+    } catch (cause) { if (request === revisionRequest.current) setError(String(cause)) }
   }
 
   async function update(kind: 'fault' | 'repair') {
     if (!scene || !selected || replaying) return
-    setBusy(true); setError('')
+    setBusy(true)
+    setError('')
     try {
       const response = await fetch('/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assetId: selected.id, kind, expectedRevision: scene.worldRevision }) })
       if (response.status === 409) {
@@ -53,30 +126,67 @@ export function App() {
       }
       if (!response.ok) throw new Error((await response.json()).detail ?? `Event failed: ${response.status}`)
       setScene(await response.json())
-    } catch (e) { setError(String(e)) } finally { setBusy(false) }
+    } catch (cause) { setError(String(cause)) } finally { setBusy(false) }
   }
 
-  return <div className="shell">
-    <header className="topbar"><div className="brand"><span className="brandmark">T</span><strong>TROSSOPS</strong><span className="divider" />OPERATIONS</div><div className="topmeta"><span className="live-dot" />{replaying ? 'REPLAY MODE' : 'SYNTHETIC WORLD'} <span className="revision">REV {scene?.worldRevision ?? '—'}</span></div></header>
-    {error && <div role="alert" className="status-banner"><span>{error}</span><button onClick={() => void refreshScene()}>Reload scene</button></div>}
-    <main className="workspace">
-      <aside className="sidebar"><div className="section-kicker">WORKSPACE</div><h1>Operations</h1><p className="subtle">Sector Alpha · synthetic exercise</p>
-        <div className="separator" /><div className="section-kicker">FLEET ASSETS <span>{scene?.entities.length ?? 0}</span></div><input className="asset-search" type="search" aria-label="Search assets" placeholder="Search assets" value={search} onChange={event => setSearch(event.target.value)} />
-        <div className="entity-list">{visibleEntities.map(e => <button key={e.id} className={`entity-row ${selectedId === e.id ? 'active' : ''}`} onClick={() => setSelectedId(e.id)}><span className={`entity-glyph ${e.condition}`} /> <span><strong>{e.label}</strong><small>{e.kind.replace('_', ' ')} · {e.condition}</small></span></button>)}{visibleEntities.length === 0 && <p className="subtle">No matching assets.</p>}</div>
-        <div className="separator" /><div className="section-kicker">SERVICE DEMAND <span>{scene?.services.length ?? 0}</span></div><div className="service-list">{scene?.services.map(item => <button key={item.id} className={`service-row ${item.id === selectedServiceId ? 'active' : ''}`} onClick={() => setSelectedServiceId(item.id)}><strong>{item.label}</strong><small className={item.status}>{item.status.toUpperCase()}</small></button>)}</div>
-        <div className="separator" /><div className="section-kicker">LAYERS</div><div className="layer-list"><button aria-pressed={showAreas} onClick={() => setShowAreas(value => !value)}>Service areas <span>{showAreas ? 'ON' : 'OFF'}</span></button><button aria-pressed={showRoutes} onClick={() => setShowRoutes(value => !value)}>Planned routes <span>{showRoutes ? 'ON' : 'OFF'}</span></button></div>
-        <div className="sidebar-foot">{scene?.dataNotice ?? 'Connecting to scene…'}</div>
+  function focusCity(key: string) {
+    setSelectedLocation(key)
+    setInspectorTab('environment')
+    const point = forecasts.find(item => item.location === key)?.gridPoint ?? pointFallbacks[key]
+    setFocus({ point, zoom: 9.4, key: Date.now() })
+  }
+
+  function selectAsset(id: string) { setSelectedId(id); setInspectorTab('asset') }
+
+  return <div className="ws-shell">
+    <header className="ws-topbar">
+      <div className="ws-brand"><div className="ws-brand-icon"><Radar size={22} strokeWidth={1.5} /></div><span className="ws-wordmark">TROSS<span>OPS</span></span><span className="ws-brand-rule" /><span className="ws-product">GEOSPATIAL WORKSTATION</span></div>
+      <div className="ws-top-center"><span className="ws-online-pip" /> SYNTHETIC EXERCISE <span className="ws-top-separator">/</span> SWEDEN <span className="ws-top-separator">/</span> {replaying ? 'REPLAY' : 'CURRENT REVISION'}</div>
+      <div className="ws-top-actions"><span className="ws-top-revision">WORLD REV <b>{scene?.worldRevision ?? '—'}</b></span><button title="Reload scene" onClick={() => void refreshScene()}><RotateCcw size={16} /></button><div className="ws-avatar">TO</div></div>
+    </header>
+
+    <div className="ws-body">
+      <nav className="ws-rail" aria-label="Workstation panels">
+        <div className="ws-rail-group"><button className={panel === 'layers' ? 'active' : ''} title="Layers" aria-label="Layers" onClick={() => setPanel('layers')}><Layers3 size={20} /></button><button className={panel === 'environment' ? 'active' : ''} title="Environment" aria-label="Environment" onClick={() => setPanel('environment')}><CloudSun size={20} /></button><button className={panel === 'activity' ? 'active' : ''} title="Activity" aria-label="Activity" onClick={() => setPanel('activity')}><History size={20} /></button></div>
+        <div className="ws-rail-bottom"><button title="Focus Sweden" aria-label="Focus Sweden" onClick={() => setFocus({ point: [17, 63], zoom: 4.5, key: Date.now() })}><Crosshair size={19} /></button><span>SE</span></div>
+      </nav>
+
+      <aside className="ws-sidebar">
+        <div className="ws-sidebar-heading"><span className="ws-eyebrow">WORKSPACE / {panel.toUpperCase()}</span><h1>{panel === 'layers' ? 'Scene layers' : panel === 'environment' ? 'Environment' : 'Activity log'}</h1><p>{panel === 'layers' ? 'Compose the operational picture.' : panel === 'environment' ? 'Public forecasts from SMHI.' : 'Revisioned synthetic event history.'}</p></div>
+        {panel === 'layers' && <>
+          <AssetList entities={scene?.entities ?? []} selectedId={selectedId} search={search} setSearch={setSearch} onSelect={selectAsset} />
+          <div className="ws-list-head ws-spaced"><span>SERVICE DEMAND</span><span>{scene?.services.length ?? 0}</span></div>
+          <div className="ws-service-list">{scene?.services.map(item => <button key={item.id} className={`ws-service ${item.id === selectedServiceId ? 'active' : ''}`} onClick={() => setSelectedServiceId(item.id)}><span className={`ws-service-icon ${item.status}`}><Activity size={15} /></span><span><strong>{item.label}</strong><small>{item.requiredEntityIds.length} dependencies · {item.status}</small></span></button>)}</div>
+          <div className="ws-list-head ws-spaced"><span>DISPLAY LAYERS</span><ChevronDown size={14} /></div>
+          <LayerSwitch label="Service geography" detail="Computed service areas" checked={layers.areas} onClick={() => toggleLayer('areas')} />
+          <LayerSwitch label="Planned movement" detail="Synthetic proposed routes" checked={layers.routes} onClick={() => toggleLayer('routes')} />
+          <LayerSwitch label="County boundaries" detail="SCB · display only" checked={layers.counties} onClick={() => toggleLayer('counties')} />
+          <LayerSwitch label="Weather points" detail="SMHI · live forecast" checked={layers.weather} onClick={() => toggleLayer('weather')} />
+          <LayerSwitch label="Dependency X-ray" detail="Selected service prerequisites" checked={layers.dependencies} onClick={() => toggleLayer('dependencies')} />
+        </>}
+        {panel === 'environment' && <><div className="ws-list-head"><span>PUBLIC FORECAST POINTS</span><span>{weatherLoading ? 'SYNC' : '04'}</span></div><div className="ws-city-list">{cityOrder.map(key => { const item = forecasts.find(value => value.location === key); return <button key={key} className={`ws-city ${selectedLocation === key ? 'active' : ''}`} onClick={() => focusCity(key)}><MapPin size={15} /><span><strong>{item?.label ?? key}</strong><small>{item?.status === 'connected' ? `Valid ${formatTime(item.validTime)}` : 'Source unavailable'}</small></span><b>{item?.status === 'connected' ? `${numberText(item.data?.air_temperature, 1)}°` : '—'}</b></button> })}</div><div className="ws-source-note"><Shield size={16} /><span>Forecast data is public and time stamped. It is not an observation or a direct input to service feasibility.</span></div></>}
+        {panel === 'activity' && <><div className="ws-list-head"><span>EVENT STREAM</span><span>REV {scene?.worldRevision ?? '—'}</span></div><div className="ws-event-list">{scene?.events.length ? [...scene.events].reverse().map(event => <div className="ws-event" key={event.id}><span className={`ws-event-dot ${event.kind}`} /><div><strong>{event.kind === 'fault' ? 'Fault recorded' : 'Repair recorded'}</strong><small>{event.assetId} · {formatTime(event.recordedAt)}</small></div><b>R{event.worldRevision}</b></div>) : <p className="ws-empty">No events at this revision.</p>}</div></>}
+        <div className="ws-sidebar-footer"><Database size={15} /><span>{scene?.dataNotice ?? 'Connecting to scene...'}</span></div>
       </aside>
-      <section className="scene-panel"><div className="map-head"><div><span className="section-kicker">OPERATIONAL SCENE</span><h2>Sector Alpha</h2></div><div className="map-controls"><button className={basemapMode === 'online' ? 'selected' : ''} onClick={() => setBasemapMode('online')}>Map</button><button className={basemapMode === 'local' ? 'selected' : ''} onClick={() => setBasemapMode('local')}>Local grid</button><div className="map-status">2D VIEW <span>·</span> SIMULATED</div></div></div>
-        <div className="map-wrap"><MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={showDependencies} showRoutes={showRoutes} showAreas={showAreas} basemapMode={basemapMode} onBasemapFailure={() => setBasemapMode('local')} onSelect={setSelectedId} /><div className="map-grid" aria-hidden="true" /><div className="map-corner">59° N<br />17° E</div><div className="map-badge">{basemapMode === 'online' ? 'OPENFREEMAP · SYNTHETIC SCENE' : 'LOCAL GRID · SYNTHETIC SCENE'}</div><div className="map-legend"><span><i className="legend-area" />Service area</span><span><i className="legend-route" />Planned route</span><span><i className="legend-asset" />Asset</span></div></div>
-        <div className="scene-footer"><span>NO LIVE TELEMETRY</span><span>MODEL {scene?.modelVersion ?? '—'}</span><span>WGS84 · POSITION APPROXIMATE</span></div>
-      </section>
-      <aside className="inspector"><div className="section-kicker">INSPECTOR</div><h2>{selected?.label ?? 'Select an asset'}</h2><p className="subtle">{selected?.resourceId ?? 'Select an entity to inspect its state.'}</p>
-        {selected && <><div className="metric"><span>Condition</span><strong className={selected.condition === 'unavailable' ? 'danger' : 'good'}>{selected.condition.toUpperCase()}</strong></div><div className="metric"><span>Source</span><strong>SIMULATED</strong></div><div className="metric"><span>World revision</span><strong>{selected.worldRevision}</strong></div><div className="actions"><button disabled={busy || replaying || selected.condition === 'unavailable'} onClick={() => update('fault')}>Record fault</button><button disabled={busy || replaying || selected.condition === 'normal'} onClick={() => update('repair')}>Record repair</button></div></>}
-        <div className="separator" /><div className="section-kicker">SERVICE CONSEQUENCE</div><div className={`service-card ${service?.status ?? ''}`}><strong>{service?.label ?? 'Loading…'}</strong><span>{service?.status?.toUpperCase() ?? '—'}</span><p>{service?.blockers.length ? service.blockers.join('; ') : 'All required assets operational.'}</p></div><p className="explainer">{service?.explanation}</p><button className={`dependency-toggle ${showDependencies ? 'on' : ''}`} onClick={() => setShowDependencies(value => !value)} aria-pressed={showDependencies}>Dependency X-ray {showDependencies ? 'on' : 'off'}</button>
-        <div className="separator" /><div className="section-kicker">REVISION REPLAY</div><div className="replay-controls"><input aria-label="World revision" type="range" min="1" max={scene?.latestRevision ?? 1} value={scene?.worldRevision ?? 1} onChange={event => loadRevision(Number(event.target.value))} /><div><span>REV 1</span><strong>REV {scene?.worldRevision ?? 1} / {scene?.latestRevision ?? 1}</strong></div>{replaying && <button onClick={() => loadRevision(scene!.latestRevision)}>Return to latest</button>}</div>
-        <div className="separator" /><div className="section-kicker">EVENT HISTORY</div><div className="timeline">{scene?.events.length ? [...scene.events].reverse().map(event => <div className="event" key={event.id}><b>{event.kind.toUpperCase()}</b><span>{event.assetId}</span><small>REV {event.worldRevision}</small></div>) : <p className="subtle">No events at this revision.</p>}</div>
+
+      <main className="ws-stage">
+        <MapScene scene={scene} selectedId={selectedId} selectedServiceId={selectedServiceId} showDependencies={layers.dependencies} showRoutes={layers.routes} showAreas={layers.areas} showCounties={layers.counties} showWeather={layers.weather} basemapMode={basemapMode} viewMode={viewMode} forecasts={forecasts} focus={focus} onBasemapFailure={() => setBasemapMode('local')} onSelect={selectAsset} onSelectWeather={focusCity} />
+        <div className="ws-stage-vignette" aria-hidden="true" />
+        <div className="ws-scene-header"><div><div className="ws-scene-kicker"><span className="ws-pulse" /> OPERATIONAL GEOGRAPHY <span className="ws-slash">/</span> SWEDEN</div><h2>{viewMode === 'globe' ? 'Northern Europe' : viewMode === 'terrain' ? 'Terrain perspective' : 'Regional operations'}</h2><p>Public geography + synthetic operations scene</p></div><div className="ws-mode-switch" role="group" aria-label="Map view mode"><button className={viewMode === 'map' ? 'active' : ''} onClick={() => setViewMode('map')}><MapIcon size={16} /> Map</button><button className={viewMode === 'terrain' ? 'active' : ''} onClick={() => setViewMode('terrain')}><Mountain size={16} /> Terrain</button><button className={viewMode === 'globe' ? 'active' : ''} onClick={() => setViewMode('globe')}><Globe2 size={16} /> Globe</button></div></div>
+        <div className="ws-map-tools"><button className={basemapMode === 'online' ? 'active' : ''} onClick={() => setBasemapMode('online')}>DARK MAP</button><button className={basemapMode === 'local' ? 'active' : ''} onClick={() => setBasemapMode('local')}>LOCAL GRID</button></div>
+        <div className="ws-map-meta"><span><Compass size={14} /> WGS84</span><span><span className="ws-map-meta-dot" /> {basemapMode === 'online' ? 'OPENFREEMAP' : 'LOCAL MODE'}</span><span>{viewMode === 'terrain' ? 'MAPTERHORN DEM' : viewMode === 'globe' ? 'GLOBE PROJECTION' : '2D PROJECTION'}</span></div>
+        <div className="ws-weather-ribbon"><CloudSun size={16} /><span>SMHI FORECAST</span><b>{forecast?.status === 'connected' ? `${forecast.label.toUpperCase()} ${numberText(forecast.data?.air_temperature, 1)}°C` : 'UNAVAILABLE'}</b><span className="ws-ribbon-divider" /> <Wind size={15} /><span>{forecast?.status === 'connected' ? `${numberText(forecast.data?.wind_speed, 1)} m/s` : '—'}</span><small>{forecast?.status === 'connected' ? `VALID ${formatTime(forecast.validTime)}` : 'NO LIVE VALUE'}</small></div>
+        <div className="ws-timeline"><div className="ws-timeline-title"><History size={16} /><span>WORLD REVISION</span><b>{replaying ? 'REPLAY' : 'LATEST'}</b></div><input aria-label="World revision" type="range" min="1" max={scene?.latestRevision ?? 1} value={scene?.worldRevision ?? 1} onChange={event => void loadRevision(Number(event.target.value))} /><span className="ws-timeline-count">{scene?.worldRevision ?? 1} / {scene?.latestRevision ?? 1}</span>{replaying && <button onClick={() => void loadRevision(scene!.latestRevision)}>Return to latest</button>}</div>
+        {error && <div role="alert" className="ws-error"><AlertTriangle size={16} /><span>{error}</span><button onClick={() => void refreshScene()}>Reload scene</button></div>}
+      </main>
+
+      <aside className="ws-inspector"><div className="ws-inspector-head"><div><span className="ws-eyebrow">CONTEXT INSPECTOR</span><h2>{inspectorTab === 'asset' ? 'Asset detail' : 'Environmental data'}</h2></div><button title="Close inspector" onClick={() => setInspectorTab(inspectorTab === 'asset' ? 'environment' : 'asset')}><X size={17} /></button></div><div className="ws-inspector-tabs"><button className={inspectorTab === 'asset' ? 'active' : ''} onClick={() => setInspectorTab('asset')}>ASSET</button><button className={inspectorTab === 'environment' ? 'active' : ''} onClick={() => setInspectorTab('environment')}>ENVIRONMENT</button></div>
+        {inspectorTab === 'asset' ? <div className="ws-inspector-content"><div className="ws-object-card"><div className="ws-object-icon">{selected?.kind === 'facility' ? '▣' : selected?.kind === 'ground_vehicle' ? '◆' : '✦'}</div><div><span className="ws-eyebrow">SYNTHETIC ENTITY</span><h3>{selected?.label ?? 'Select an asset'}</h3><p>{selected?.resourceId ?? 'No selection'}</p></div></div>{selected && <><div className="ws-status-line"><span>OPERATIONAL STATE</span><b className={selected.condition}>{selected.condition.toUpperCase()}</b></div><div className="ws-detail-grid"><div><span>CLASS</span><b>{selected.kind.replace('_', ' ')}</b></div><div><span>HEADING</span><b>{selected.headingDeg}°</b></div><div><span>WORLD REV</span><b>{selected.worldRevision}</b></div><div><span>PROVENANCE</span><b>SIMULATED</b></div></div><div className="ws-object-actions"><button disabled={busy || replaying || selected.condition === 'unavailable'} onClick={() => void update('fault')}>Record fault</button><button disabled={busy || replaying || selected.condition === 'normal'} onClick={() => void update('repair')}>Record repair</button></div></>}
+          <div className="ws-section-title"><Activity size={15} /> SERVICE CONSEQUENCE</div><div className={`ws-consequence ${service?.status ?? ''}`}><div><span>{service?.label ?? 'Loading...'}</span><b>{service?.status?.toUpperCase() ?? '—'}</b></div><p>{service?.blockers.length ? service.blockers.join(' · ') : 'All required assets operational.'}</p></div><p className="ws-evidence">Computed from required entity conditions at world revision {scene?.worldRevision ?? '—'}. Synthetic exercise.</p><button className={`ws-xray ${layers.dependencies ? 'active' : ''}`} onClick={() => toggleLayer('dependencies')}><Eye size={15} /> Dependency X-ray <span>{layers.dependencies ? 'ON' : 'OFF'}</span></button>
+          <div className="ws-section-title"><History size={15} /> RECENT EVENTS</div><div className="ws-mini-events">{scene?.events.length ? [...scene.events].reverse().slice(0, 3).map(event => <div key={event.id}><span className={event.kind}>{event.kind.toUpperCase()}</span><span>{event.assetId}</span><b>REV {event.worldRevision}</b></div>) : <p>No events at this revision.</p>}</div>
+        </div> : <div className="ws-inspector-content"><div className="ws-weather-title"><span className="ws-eyebrow">SMHI / POINT FORECAST</span><h3>{forecast?.label ?? selectedLocation}</h3><p>{forecast?.status === 'connected' ? `Valid ${formatTime(forecast.validTime)}` : 'Live forecast unavailable'}</p></div>{forecast?.status === 'connected' ? <><div className="ws-weather-hero"><Thermometer size={22} /><strong>{numberText(forecast.data?.air_temperature, 1)}<sup>°C</sup></strong><span>FORECAST AIR TEMPERATURE</span></div><div className="ws-weather-metrics"><div><Wind size={17} /><span>WIND SPEED</span><b>{numberText(forecast.data?.wind_speed, 1)} m/s</b></div><div><Compass size={17} /><span>WIND FROM</span><b>{numberText(forecast.data?.wind_from_direction)}°</b></div><div><CloudSun size={17} /><span>CLOUD COVER</span><b>{numberText(forecast.data?.cloud_area_fraction)} / 8</b></div><div><CloudSun size={17} /><span>PRECIP. PROB.</span><b>{numberText(forecast.data?.probability_of_precipitation)}%</b></div></div><div className="ws-forecast-meta"><div><span>FORECAST ISSUED</span><b>{formatTime(forecast.referenceTime)}</b></div><div><span>GRID POINT</span><b>{forecast.gridPoint?.map(value => value.toFixed(3)).join(', ') ?? '—'}</b></div><a href={forecast.sourceUrl} target="_blank" rel="noreferrer">SMHI source <ArrowUpRight size={14} /></a></div></> : <p className="ws-unavailable">{forecast?.reason ?? 'Connecting to SMHI...'}</p>}<div className="ws-source-note"><Shield size={16} /><span>Forecast values are modelled, time stamped environmental data. They are not observations or synthetic operational facts.</span></div></div>}
+        <div className="ws-inspector-footer"><span className="ws-online-pip" /> {scene?.sourceKind?.toUpperCase() ?? 'CONNECTING'} WORLD <span>MODEL {scene?.modelVersion ?? '—'}</span></div>
       </aside>
-    </main>
+    </div>
   </div>
 }

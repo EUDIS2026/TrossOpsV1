@@ -4,21 +4,20 @@
 
 ## Executed
 
-- `cd backend; python -m pytest -q`: **4 passed**. A synthetic support fault changes revision and both computed services; revision 1 replays its prior state; a file-backed event store survives a new `World` instance; stale revisions are rejected without mutation; health and scene endpoints respond.
-- `cd frontend; npm.cmd run build`: **passed** with MapLibre GL JS 6.14.0. Vite reports a large 2.19 MB main JS chunk; bundle splitting remains open.
-- `cd frontend; npm.cmd audit --json`: **0 vulnerabilities** after updating MapLibre from 5.x.
-- `cd frontend; node scripts/verify-local.mjs`: **passed** in installed Edge. Page errors: **0**. Verified online basemap rendering, scene load, asset search, route layer control, service selection, dependency control, fault command, service change, revision replay, return to latest, and forced tile-failure fallback.
-- Direct HTTP through Vite proxy: revision 1 available → support fault revision 2 unavailable with blocker → repair revision 3 available.
-- Actual API process restart after the browser fault: revision 2, unavailable aircraft/service, and one event remained. A repair then created revision 3 and restored the service.
+- `cd backend; python -m pytest -q`: **5 passed**. Tests cover revisioned synthetic world behavior and SMHI forecast parsing.
+- `cd frontend; npm.cmd run build`: **passed** with MapLibre GL JS 6.14.0 and deck.gl 9.4.0. Vite reports a large main JS chunk; splitting remains open.
+- `cd frontend; node scripts/verify-local.mjs`: **passed**, page errors **0**. Exercised search, county toggle, terrain and globe mode switches, weather inspector, fault → service consequence → replay → repair, and forced online tile failure → local grid.
+- Live API request for Stockholm returned a connected SMHI forecast with air temperature, wind speed/direction, cloud cover, and forecast timestamps.
 
 ## Artifacts
 
-- [Initial scene](local-browser.png)
-- [Fault and dependency view](local-browser-fault.png)
-- [Tile-failure local fallback](local-browser-fallback.png)
+- [2D map](local-browser.png)
+- [Terrain perspective](local-browser-terrain.png)
+- [Globe and county boundaries](local-browser-globe.png)
+- [Weather inspector](local-browser-weather.png)
+- [Fault consequence](local-browser-fault.png)
+- [Offline basemap fallback](local-browser-fallback.png)
 
 ## Limits
 
-The browser check exercises the synthetic SQLite-backed API and public OpenFreeMap tiles. It does not verify hosted persistence, real telemetry, 3D, multi-user consistency, frame time, or production deployment. No FPS claim is made. The browser script assumes Edge is installed at the standard Windows path.
-
-The UI's new stale-revision recovery banner passes TypeScript/build checks, but its concurrent-browser interaction has not yet been exercised in Edge.
+The terrain view uses real elevation tiles but synthetic service areas are illustrative extrusions; deck.gl overlays are not draped onto terrain. SCB boundaries are simplified for thematic display. Weather is a forecast, not an observation, and does not drive service status. No FPS, cinematic quality, hosted persistence, live telemetry, LLM, or production deployment claim is made.

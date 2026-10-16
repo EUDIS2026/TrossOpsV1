@@ -11,3 +11,12 @@ export type Scene = {
   routes: { id: string; kind: 'planned'; entityId: string; coordinates: [number, number][] }[];
   events: { id: string; assetId: string; kind: string; worldRevision: number; recordedAt: string; sourceKind: string }[];
 }
+
+export type Forecast = {
+  status: 'connected' | 'unavailable'; source: string; kind: 'forecast'; location: string; label: string;
+  sourceUrl?: string; requestedPoint?: [number, number]; gridPoint?: [number, number];
+  createdTime?: string; referenceTime?: string; validTime?: string; reason?: string;
+  data?: Record<string, number | null>; units?: Record<string, string>;
+}
+
+export type ViewMode = 'map' | 'terrain' | 'globe'

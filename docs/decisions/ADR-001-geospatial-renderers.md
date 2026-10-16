@@ -1,7 +1,7 @@
-# ADR-001: Primary scene rendering
+# ADR-001: Scene rendering
 
-Status: accepted for initial implementation.
+Status: accepted for the current workstation slice.
 
-Use MapLibre GL JS for projection and camera, with deck.gl's MapboxOverlay in overlaid mode for GPU entity silhouettes and labels. The default online style is OpenFreeMap Dark, with MapLibre attribution visible. A bundled empty style supplies the local-grid fallback without keys or tiles. Both modes were checked in Edge; overlaid mode preserves overlay alignment when switching. Interleaved depth behavior remains untested.
+MapLibre GL JS 6 owns the map camera, base style, globe projection, county outlines, and Mapterhorn terrain. deck.gl 9.4's dedicated `MapLibreOverlay` renders the synthetic scene and forecast points over the map. The older `MapboxOverlay` was replaced after Edge exposed its incompatibility with MapLibre 6 terrain elevation.
 
-Cesium remains planned as a separately loaded 3D mode after the shared scene contract, altitude semantics, and suitable licensed terrain/assets exist. The current environment has no such assets or keys. This decision follows the geospatial brief's ordering: a working primary map precedes immersive 3D.
+This stack supports the verified 2D, terrain, and globe views without a proprietary map key. It does not make deck.gl geometry follow the DEM surface; the service area extrusions are illustrative. A future detailed 3D mode requires defined asset altitude, licensed models, terrain alignment, and a browser performance budget.

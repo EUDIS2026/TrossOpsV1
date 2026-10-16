@@ -2,13 +2,14 @@
 
 | Capability | Status | Evidence / next step |
 |---|---|---|
-| Synthetic scene API | partial | Snapshot, revision checked commands, deterministic replay, and local SQLite persistence verified across an API restart; add hosted persistence, multi-user concurrency, and bitemporal semantics. |
-| Hosted database | planned | Connect a transactional Postgres service during deployment; current SQLite file is not suitable for serverless persistence. |
-| Service consequence | partial | Backend computes two services with a shared support dependency; extend to capacity/temporal reasoning and tests. |
-| MapLibre/deck scene | partial | GPU silhouettes, planned paths, selectable service areas, search, layer controls, dependency toggle, selection camera, and revision replay; browser flow verified in Edge. Add LOD and performance measurements. |
-| OpenFreeMap basemap | working | Dark style loaded in Edge with attribution; public provider has no SLA. |
-| Local grid fallback | working | Forced tile request failure switched to local scene in Edge. |
-| Asset/ERP records | planned | Define authorized resource API; current `resourceId` is synthetic only. |
-| NATS / SpacetimeDB | planned | Connect only after source and projection contracts exist. |
-| Telemetry | planned | Add authorized adapter, timestamp/freshness contract, and end-to-end test. |
-| Cesium / terrain / 3D tiles | planned | Require licensed assets and browser verification. |
+| Synthetic scene API | partial | Revision checked commands, deterministic replay, and local SQLite persistence. Hosted persistence and multi-user concurrency remain. |
+| Service consequence | partial | Backend computes two services from required asset conditions. Capacity and time reasoning remain. |
+| Map workstation | partial | MapLibre 6 with deck.gl's dedicated MapLibre adapter; layer toggles, selectable synthetic geometry, search, replay, and Edge browser flow. |
+| Terrain and globe | partial | Mapterhorn DEM terrain and MapLibre globe rendered in Edge. Terrain overlays are illustrative and are not draped on the DEM. Detailed 3D assets and altitude semantics remain. |
+| Swedish county boundaries | working | 21 SCB CC0 county shapes converted to WGS84 and displayed. SCB simplifies these boundaries for thematic display; no precise boundary analysis. |
+| Swedish weather | working | Live SMHI SNOW1G point forecasts at four public city coordinates, with forecast and valid times. Weather does not feed service feasibility. |
+| OpenFreeMap / local grid | working | Online style loaded and forced failure fell back to the local scene in Edge. Public map provider has no SLA. |
+| Hosted database | planned | Local SQLite file is unsuitable for Vercel serverless persistence; provision a transactional Postgres service before deployment. |
+| LLM scene analysis | planned | Add a credential-gated adapter and explicit provenance before claims of live AI analysis. |
+| Asset/ERP records, telemetry | planned | Define authorized source, freshness and identity contracts. Current assets remain synthetic. |
+| NATS / SpacetimeDB | planned | Connect after the source and projection contracts exist. |
