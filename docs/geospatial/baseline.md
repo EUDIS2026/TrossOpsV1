@@ -14,7 +14,7 @@ The repository began as an empty clone with instructions, a README, and the geos
 ## Risks and limitations
 
 - State is process memory; restart resets the scenario. Revision replay works, while multi-user persistence is planned.
-- The map uses an empty local style and synthetic positions. Licensed basemap/terrain and actual vector geography are planned.
+- The map has a verified OpenFreeMap dark basemap with attribution and a local-grid fallback. Synthetic positions and overlays are not actual operational geography. Terrain and offline vector geography remain planned.
 - Entity silhouettes are GPU polygons, not geodetically sized models. GLB assets and LOD are planned.
 - No telemetry, ERP, SpacetimeDB, NATS, Cesium, external tiles, or live integrations are connected.
 - No pre-existing screenshot existed. The new local browser screenshots and executed checks are recorded in [verification](verification.md).
