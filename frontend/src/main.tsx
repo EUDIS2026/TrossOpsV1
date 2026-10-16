@@ -11,6 +11,7 @@ import './status.css'
 import './studio.css'
 import './analysis.css'
 import './analysis-access.css'
+import './preview.css'
 import { App } from './App'
 
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)

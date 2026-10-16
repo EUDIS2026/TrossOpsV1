@@ -47,3 +47,16 @@ def test_api_health_and_scene() -> None:
     assert scene["sourceKind"] == "simulated"
     assert len(scene["entities"]) == 4
     assert len(scene["services"]) == 2
+
+
+def test_preview_shows_service_impact_without_mutating_world() -> None:
+    from app.main import PreviewIn
+    world = World()
+    before = world.snapshot()
+    result = world.preview(PreviewIn(assetId="support-01", kind="fault", baseRevision=1))
+    assert result["candidate"]["previewKind"] == "hypothetical"
+    assert result["candidate"]["entities"][2]["condition"] == "unavailable"
+    assert {item["serviceId"] for item in result["impacts"]} == {"survey-sector-alpha", "inspection-sector-bravo"}
+    assert all(item["after"] == "unavailable" for item in result["impacts"])
+    assert world.snapshot() == before
+    assert world.revision == 1

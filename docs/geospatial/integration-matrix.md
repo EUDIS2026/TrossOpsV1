@@ -4,6 +4,7 @@
 |---|---|---|
 | Synthetic scene API | partial | Revision checked commands, deterministic replay, and local SQLite persistence. Hosted persistence and multi-user concurrency remain. |
 | Service consequence | partial | Backend computes two services from required asset conditions. Capacity and time reasoning remain. |
+| What-if preview | partial | Read-only fault/repair preview recomputes impacted services from any valid revision; Edge confirms no authoritative revision change. Multi-event branches and comparison UI remain. |
 | Map workstation | partial | MapLibre 6 with deck.gl's dedicated MapLibre adapter; layer toggles, selectable synthetic geometry, search, replay, and Edge browser flow. |
 | Terrain and globe | partial | Mapterhorn DEM terrain and MapLibre globe rendered in Edge. Terrain overlays are illustrative and are not draped on the DEM. Detailed 3D assets and altitude semantics remain. |
 | Swedish county boundaries | working | 21 SCB CC0 county shapes converted to WGS84 and displayed. SCB simplifies these boundaries for thematic display; no precise boundary analysis. |

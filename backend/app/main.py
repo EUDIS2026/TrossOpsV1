@@ -50,6 +50,12 @@ class AnalysisIn(BaseModel):
     worldRevision: int = Field(ge=1)
 
 
+class PreviewIn(BaseModel):
+    assetId: str
+    kind: Literal["fault", "repair"]
+    baseRevision: int = Field(ge=1)
+
+
 class World:
     def __init__(self, db_path: Path | None = None) -> None:
         self.lock = Lock()
@@ -144,6 +150,33 @@ class World:
             })
         return self.snapshot()
 
+    def preview(self, request: PreviewIn) -> dict:
+        baseline = self.snapshot(request.baseRevision)
+        candidate = deepcopy(baseline)
+        entity = next((item for item in candidate["entities"] if item["id"] == request.assetId), None)
+        if entity is None:
+            raise HTTPException(404, "Asset not found")
+        entity["condition"] = "unavailable" if request.kind == "fault" else "normal"
+        by_id = {item["id"]: item for item in candidate["entities"]}
+        impacts = []
+        for service in candidate["services"]:
+            blockers = [
+                f"{by_id[entity_id]['label']} is unavailable"
+                for entity_id in service["requiredEntityIds"]
+                if by_id[entity_id]["condition"] != "normal"
+            ]
+            previous = next(item for item in baseline["services"] if item["id"] == service["id"])
+            service["blockers"] = blockers
+            service["status"] = "unavailable" if blockers else "available"
+            if service["status"] != previous["status"] or blockers != previous["blockers"]:
+                impacts.append({"serviceId": service["id"], "label": service["label"],
+                                "before": previous["status"], "after": service["status"], "blockers": blockers})
+        candidate["scenarioId"] = f"preview-{request.kind}-{request.assetId}-r{request.baseRevision}"
+        candidate["previewKind"] = "hypothetical"
+        candidate["dataNotice"] = "Hypothetical synthetic preview. No event was committed."
+        return {"status": "preview", "baseRevision": request.baseRevision, "assetId": request.assetId,
+                "eventKind": request.kind, "baseline": baseline, "candidate": candidate, "impacts": impacts}
+
 
 default_db_path = Path(__file__).parents[1] / "data" / "demo.sqlite"
 world = World(Path(os.environ.get("TROSSOPS_DB_PATH", str(default_db_path))))
@@ -165,6 +198,11 @@ def scene(revision: int | None = None) -> dict:
 @app.post("/api/events")
 def apply_event(event: EventIn) -> dict:
     return world.apply(event)
+
+
+@app.post("/api/scenarios/preview")
+def preview_scenario(request: PreviewIn) -> dict:
+    return world.preview(request)
 
 
 @app.get("/api/environment/points")

@@ -20,3 +20,9 @@ export type Forecast = {
 }
 
 export type ViewMode = 'map' | 'terrain' | 'globe'
+
+export type ScenarioPreview = {
+  status: 'preview'; baseRevision: number; assetId: string; eventKind: 'fault' | 'repair';
+  baseline: Scene; candidate: Scene;
+  impacts: { serviceId: string; label: string; before: string; after: string; blockers: string[] }[];
+}

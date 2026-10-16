@@ -20,7 +20,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://127.0.0.1:5173`. Switch between map, terrain, and globe views; turn on SCB county boundaries; inspect timestamped SMHI forecasts for four Swedish cities; and switch between the online dark map and local grid. Select an asset, record a fault, and observe the revision, condition, service consequence, and event history. Scrub revisions and record a repair to restore the service. The local SQLite event store survives API restarts at `backend/data/demo.sqlite` (ignored by Git). Set `TROSSOPS_DB_PATH` before starting the API to use another local path. See [data sources and attribution](docs/geospatial/styles.md).
+Open `http://127.0.0.1:5173`. Switch between map, terrain, and globe views; turn on SCB county boundaries; inspect timestamped SMHI forecasts for four Swedish cities; and switch between the online dark map and local grid. Select an asset and preview a hypothetical fault without changing the world revision. Exit preview, record a real synthetic fault, then observe the revision, condition, service consequence, and event history. Scrub revisions and record a repair to restore the service. The local SQLite event store survives API restarts at `backend/data/demo.sqlite` (ignored by Git). Set `TROSSOPS_DB_PATH` before starting the API to use another local path. See [data sources and attribution](docs/geospatial/styles.md).
 
 ## Checks
 
